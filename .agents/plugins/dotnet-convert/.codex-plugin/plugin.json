@@ -1,0 +1,18 @@
+{
+  "name": "dotnet-convert",
+  "version": "0.1.0",
+  "description": "Explicit conversions of existing .NET projects and solutions.",
+  "author": {
+    "name": "dotnet-skills-starter contributors"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": ".NET Convert",
+    "shortDescription": "Convert existing .NET projects to CPM.",
+    "longDescription": "Explicitly convert a named .NET project or solution to NuGet Central Package Management while preserving package versions.",
+    "developerName": "Casper",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Use $dotnet-cpm-convert to convert this .NET solution to Central Package Management."
+  }
+}

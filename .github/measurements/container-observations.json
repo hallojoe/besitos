@@ -1,0 +1,11 @@
+{
+  "samples": 462,
+  "first": "2026-10-30T18:28:41Z",
+  "last": "2026-10-30T19:11:25Z",
+  "maxPostgresLockWaiters": 8,
+  "maxSqlServerLockWaiters": 0,
+  "sampledPeakContainerMemoryBytes": {
+    "postgres": 150800000.0,
+    "sqlserver": 1665000000.0
+  }
+}

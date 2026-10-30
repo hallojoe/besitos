@@ -1,0 +1,6 @@
+interface:
+  display_name: ".NET Console Scaffold"
+  short_description: "Scaffold a .NET console application with a Generic Host, scoped dependency injection, configuration, and structured console logging."
+  default_prompt: "Use $dotnet-console-scaffold to scaffold a .NET console application. Add a noop demo service that console logs."
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,80 @@
+{
+  "provider": "postgres",
+  "databaseVersion": "18.1 (Debian 18.1-1.pgdg13\u002B2)",
+  "queue": "bench-d11addeb049c42f6a6558eea41268f82",
+  "mode": "benchmark",
+  "count": 100000,
+  "concurrency": 16,
+  "payloadBytes": 128,
+  "runtime": ".NET 10.0.14",
+  "os": "Omarchy",
+  "architecture": "X64",
+  "logicalProcessors": 8,
+  "enqueueSeconds": 113.8173104,
+  "consumeSeconds": 60.6095047,
+  "completionPerSecond": 1649.9062398706583,
+  "completed": 100000,
+  "storageErrors": 0,
+  "peakWorkingSetBytes": 92041216,
+  "managedHeapBytes": 4815392,
+  "cpuSeconds": 82.499705,
+  "claimLatencyHistogram": [
+    {
+      "upperMs": "0.1",
+      "count": 0
+    },
+    {
+      "upperMs": "0.25",
+      "count": 0
+    },
+    {
+      "upperMs": "0.5",
+      "count": 0
+    },
+    {
+      "upperMs": "1",
+      "count": 0
+    },
+    {
+      "upperMs": "2",
+      "count": 57
+    },
+    {
+      "upperMs": "5",
+      "count": 50461
+    },
+    {
+      "upperMs": "10",
+      "count": 45735
+    },
+    {
+      "upperMs": "25",
+      "count": 3530
+    },
+    {
+      "upperMs": "50",
+      "count": 203
+    },
+    {
+      "upperMs": "100",
+      "count": 30
+    },
+    {
+      "upperMs": "500",
+      "count": 0
+    },
+    {
+      "upperMs": "\u003E500",
+      "count": 0
+    }
+  ],
+  "final": {
+    "Ready": 0,
+    "Delayed": 0,
+    "Leased": 0,
+    "Dead": 0,
+    "OldestAvailableAt": null,
+    "ObservedAt": "2026-10-30T18:50:04.158+00:00"
+  },
+  "note": "No handler delay. Storage-only benchmark. Database memory, lock waits, and browser memory require separate observation."
+}

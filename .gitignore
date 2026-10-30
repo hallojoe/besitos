@@ -1,0 +1,14 @@
+**/bin/
+**/obj/
+**/TestResults/
+.artifacts/
+.data/
+.aspire/
+**/.aspire/
+*.user
+*.db
+*.db-shm
+*.db-wal
+.env
+.playwright-cli/
+**/__pycache__/

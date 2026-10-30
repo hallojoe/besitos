@@ -1,0 +1,18 @@
+{
+  "name": "dotnet-feature-skills",
+  "version": "0.2.0",
+  "description": "Skills for feature-first .NET and ASP.NET Core development and C# code style.",
+  "author": {
+    "name": "dotnet-skills-starter contributors"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": ".NET Feature Skills",
+    "shortDescription": "Structure .NET and ASP.NET Core features.",
+    "longDescription": "Create and extend .NET features with configuration, dependency injection, feature management, HTTP integration, and C# style conventions.",
+    "developerName": "Casper",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Use $dotnet-feature to implement a feature in this project."
+  }
+}

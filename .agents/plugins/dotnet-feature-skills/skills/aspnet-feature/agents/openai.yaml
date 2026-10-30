@@ -1,0 +1,6 @@
+interface:
+  display_name: "ASP.NET Core Feature"
+  short_description: "Build or evolve an ASP.NET Core HTTP feature."
+  default_prompt: "Use $aspnet-feature to implement this HTTP feature."
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,44 @@
+name: Verify queue behavior
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      large_workload:
+        description: Run the 100,000-item provider and concurrency matrix
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - run: dotnet build Besitos.slnx
+      - name: Real provider contracts and both SQL Server isolation modes
+        env:
+          CONTAINER_ENGINE: docker
+          BESITOS_KEEP_TEST_CONTAINERS: '1'
+        run: python3 src/Queue.SystemTests/provider-matrix.py
+      - name: Independent processes, restart, crashes, and telemetry outage
+        run: python3 src/Queue.SystemTests/process-checks.py
+      - name: HTTP protection, SSE reconnection, and shutdown
+        run: python3 src/Queue.SystemTests/console-checks.py
+      - name: Opt-in large workload
+        if: inputs.large_workload == true
+        run: python3 src/Queue.SystemTests/benchmark-matrix.py --allow-100k
+      - name: Remove private test containers
+        if: always()
+        run: python3 src/Queue.SystemTests/cleanup-engines.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verification
+          path: |
+            .artifacts/*.trx
+            .artifacts/benchmark-*.json

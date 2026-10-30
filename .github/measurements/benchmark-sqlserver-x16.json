@@ -1,0 +1,80 @@
+{
+  "provider": "sqlserver",
+  "databaseVersion": "16.00.4225",
+  "queue": "bench-83a1f1df37c340f69475c68f6df1d838",
+  "mode": "benchmark",
+  "count": 100000,
+  "concurrency": 16,
+  "payloadBytes": 128,
+  "runtime": ".NET 10.0.14",
+  "os": "Omarchy",
+  "architecture": "X64",
+  "logicalProcessors": 8,
+  "enqueueSeconds": 168.3428165,
+  "consumeSeconds": 167.6680261,
+  "completionPerSecond": 596.4166354553392,
+  "completed": 100000,
+  "storageErrors": 0,
+  "peakWorkingSetBytes": 110534656,
+  "managedHeapBytes": 3459904,
+  "cpuSeconds": 152.79501,
+  "claimLatencyHistogram": [
+    {
+      "upperMs": "0.1",
+      "count": 0
+    },
+    {
+      "upperMs": "0.25",
+      "count": 0
+    },
+    {
+      "upperMs": "0.5",
+      "count": 0
+    },
+    {
+      "upperMs": "1",
+      "count": 0
+    },
+    {
+      "upperMs": "2",
+      "count": 9
+    },
+    {
+      "upperMs": "5",
+      "count": 669
+    },
+    {
+      "upperMs": "10",
+      "count": 18034
+    },
+    {
+      "upperMs": "25",
+      "count": 65994
+    },
+    {
+      "upperMs": "50",
+      "count": 14726
+    },
+    {
+      "upperMs": "100",
+      "count": 500
+    },
+    {
+      "upperMs": "500",
+      "count": 83
+    },
+    {
+      "upperMs": "\u003E500",
+      "count": 1
+    }
+  ],
+  "final": {
+    "Ready": 0,
+    "Delayed": 0,
+    "Leased": 0,
+    "Dead": 0,
+    "OldestAvailableAt": null,
+    "ObservedAt": "2026-10-30T19:11:21.476+00:00"
+  },
+  "note": "No handler delay. Storage-only benchmark. Database memory, lock waits, and browser memory require separate observation."
+}

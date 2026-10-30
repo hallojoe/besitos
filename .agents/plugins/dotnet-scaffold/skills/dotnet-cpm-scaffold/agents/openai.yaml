@@ -1,0 +1,6 @@
+interface:
+  display_name: ".NET CPM Scaffolding"
+  short_description: "Use CPM for new .NET solutions and projects."
+  default_prompt: "Use $dotnet-cpm-scaffold to create a new .NET solution with Central Package Management."
+policy:
+  allow_implicit_invocation: true

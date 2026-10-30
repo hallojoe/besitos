@@ -1,0 +1,27 @@
+{
+  "provider": "postgres",
+  "count": 100000,
+  "concurrency": 4,
+  "cancellation": true,
+  "finalRows": 0,
+  "before": {
+    "heap": 3194360,
+    "nodes": 581,
+    "rows": 0
+  },
+  "backlog": {
+    "heap": 3026752,
+    "nodes": 5598,
+    "rows": 492
+  },
+  "after": {
+    "heap": 2847316,
+    "nodes": 4922,
+    "rows": 500
+  },
+  "peakHeap": 3248720,
+  "peakDomNodes": 16448,
+  "maxEventRows": 500,
+  "dropped": "Worker telemetry dropped: 37924",
+  "sampleCount": 34
+}

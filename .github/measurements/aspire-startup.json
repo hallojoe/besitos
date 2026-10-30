@@ -1,0 +1,47 @@
+[
+  {
+    "displayName": "console",
+    "state": "Running",
+    "healthStatus": "Healthy"
+  },
+  {
+    "displayName": "demo-key",
+    "state": "Running",
+    "healthStatus": "Healthy"
+  },
+  {
+    "displayName": "postgres",
+    "state": "NotStarted",
+    "healthStatus": null
+  },
+  {
+    "displayName": "postgres-queue",
+    "state": "NotStarted",
+    "healthStatus": null
+  },
+  {
+    "displayName": "postgres-worker",
+    "state": "NotStarted",
+    "healthStatus": null
+  },
+  {
+    "displayName": "sqlite-worker",
+    "state": "NotStarted",
+    "healthStatus": null
+  },
+  {
+    "displayName": "sqlserver",
+    "state": "NotStarted",
+    "healthStatus": null
+  },
+  {
+    "displayName": "sqlserver-queue",
+    "state": "NotStarted",
+    "healthStatus": null
+  },
+  {
+    "displayName": "sqlserver-worker",
+    "state": "NotStarted",
+    "healthStatus": null
+  }
+]

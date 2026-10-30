@@ -1,0 +1,9 @@
+{
+  "name": "dotnet-scaffold",
+  "displayName": ".NET Scaffold",
+  "version": "0.1.0",
+  "description": "Scaffold .NET console applications and use Central Package Management for new projects and solutions.",
+  "author": {
+    "name": "dotnet-skills-starter contributors"
+  }
+}

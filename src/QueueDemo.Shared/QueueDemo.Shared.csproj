@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup><FrameworkReference Include="Microsoft.AspNetCore.App" /></ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Queue.Core/Queue.Core.csproj" />
+    <ProjectReference Include="../Queue.Worker/Queue.Worker.csproj" />
+  </ItemGroup>
+</Project>

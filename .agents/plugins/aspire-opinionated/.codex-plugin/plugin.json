@@ -1,0 +1,18 @@
+{
+  "name": "aspire-opinionated",
+  "version": "0.1.0",
+  "description": "Opinionated conventions and local management UIs for C# Aspire AppHost resources.",
+  "author": {
+    "name": "dotnet-skills-starter contributors"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Aspire Opinionated",
+    "shortDescription": "Structure C# Aspire resources and add local UIs.",
+    "longDescription": "Organize C# Aspire AppHost resources in descriptive builder extension methods and add local management UIs for supported resources.",
+    "developerName": "Casper",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Use $aspire-apphost-conventions to add this C# Aspire AppHost resource."
+  }
+}

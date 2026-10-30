@@ -1,0 +1,9 @@
+{
+  "name": "dotnet-feature-skills",
+  "displayName": ".NET Feature Skills",
+  "version": "0.2.0",
+  "description": "Skills for feature-first .NET and ASP.NET Core development and C# code style.",
+  "author": {
+    "name": "dotnet-skills-starter contributors"
+  }
+}

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsTestProject>true</IsTestProject><IsPackable>false</IsPackable></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Queue.Sqlite/Queue.Sqlite.csproj" />
+    <ProjectReference Include="../Queue.Postgres/Queue.Postgres.csproj" />
+    <ProjectReference Include="../Queue.SqlServer/Queue.SqlServer.csproj" />
+    <ProjectReference Include="../Queue.Worker/Queue.Worker.csproj" />
+    <ProjectReference Include="../QueueDemo.Web/QueueDemo.Web.csproj" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+</Project>

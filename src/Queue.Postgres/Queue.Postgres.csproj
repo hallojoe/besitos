@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="../Queue.Storage/Queue.Storage.csproj" />
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+</Project>

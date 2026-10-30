@@ -1,0 +1,6 @@
+interface:
+  display_name: ".NET Code Style"
+  short_description: "Improve C# readability without restructuring."
+  default_prompt: "Use $dotnet-code-style to improve the readability of this C# code."
+policy:
+  allow_implicit_invocation: false

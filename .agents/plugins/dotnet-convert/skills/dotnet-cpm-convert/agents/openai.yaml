@@ -1,0 +1,6 @@
+interface:
+  display_name: ".NET CPM Conversion"
+  short_description: "Convert a project or solution to NuGet CPM."
+  default_prompt: "Use $dotnet-cpm-convert to convert this .NET solution to Central Package Management."
+policy:
+  allow_implicit_invocation: false

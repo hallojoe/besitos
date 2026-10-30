@@ -1,0 +1,9 @@
+{
+  "name": "dotnet-convert",
+  "displayName": ".NET Convert",
+  "version": "0.1.0",
+  "description": "Explicit conversions of existing .NET projects and solutions.",
+  "author": {
+    "name": "dotnet-skills-starter contributors"
+  }
+}

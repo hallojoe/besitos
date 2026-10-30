@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Queue.Benchmarks/Queue.Benchmarks.csproj" />
+    <Project Path="src/Queue.Core/Queue.Core.csproj" />
+    <Project Path="src/Queue.Postgres/Queue.Postgres.csproj" />
+    <Project Path="src/Queue.Sqlite/Queue.Sqlite.csproj" />
+    <Project Path="src/Queue.SqlServer/Queue.SqlServer.csproj" />
+    <Project Path="src/Queue.Storage/Queue.Storage.csproj" />
+    <Project Path="src/Queue.Tests/Queue.Tests.csproj" />
+    <Project Path="src/Queue.Worker/Queue.Worker.csproj" />
+    <Project Path="src/QueueDemo.AppHost/QueueDemo.AppHost.csproj" />
+    <Project Path="src/QueueDemo.Shared/QueueDemo.Shared.csproj" />
+    <Project Path="src/QueueDemo.Web/QueueDemo.Web.csproj" />
+    <Project Path="src/QueueDemo.Worker/QueueDemo.Worker.csproj" />
+  </Folder>
+</Solution>

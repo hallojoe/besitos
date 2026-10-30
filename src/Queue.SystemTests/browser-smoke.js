@@ -1,0 +1,37 @@
+async page => {
+  await page.reload();
+  await page.getByRole('combobox', {name:'ACTIVE STORE'}).selectOption('sqlite');
+  await page.waitForFunction(() => document.getElementById('readiness').textContent === 'ready');
+  await page.getByRole('button', {name:'Pause', exact:true}).click();
+  await page.getByRole('button', {name:'Success', exact:true}).click();
+  await page.getByRole('button', {name:'Enqueue command'}).click();
+  await page.waitForFunction(() => document.getElementById('notice').textContent.startsWith('Enqueued '));
+  await page.getByRole('button', {name:'Start processing', exact:true}).click();
+  await page.waitForFunction(() => document.getElementById('events').textContent.includes('completed'));
+  await page.getByRole('button', {name:'Poison', exact:true}).click();
+  const payload = '<img src=x onerror="window.payloadExecuted=true"> <script>window.payloadExecuted=true</script> ø 🌍';
+  await page.getByRole('textbox', {name:'Text payload · preserved exactly'}).fill(payload);
+  await page.getByRole('textbox', {name:'Media type'}).fill('text/html');
+  const enqueued = page.waitForResponse(response => response.url().endsWith('/enqueue') && response.request().method() === 'POST');
+  await page.getByRole('button', {name:'Enqueue command'}).click();
+  const item = await (await enqueued).json();
+  await page.waitForFunction(id => [...document.querySelectorAll('#events .event.dead')].some(row => row.textContent.includes(id)), item.id);
+  await page.getByRole('button', {name:'Pause', exact:true}).click();
+  await page.getByRole('button', {name:'Refresh', exact:true}).click();
+  await page.locator('.dead-row').filter({hasText:item.id}).getByRole('button', {name:'Inspect →'}).click();
+  await page.locator('#inspector').waitFor({state:'visible'});
+  if (await page.locator('#item-payload').textContent() !== payload) throw new Error('Payload changed.');
+  if (await page.locator('#item-payload img, #item-payload script').count()) throw new Error('Payload rendered as HTML.');
+  if (await page.evaluate(() => window.payloadExecuted)) throw new Error('Payload executed.');
+  await page.getByRole('button', {name:'Replay this dead letter'}).click();
+  await page.waitForFunction(() => document.getElementById('notice').textContent.startsWith('Replayed '));
+  await page.getByRole('combobox', {name:'ACTIVE STORE'}).selectOption('postgres');
+  if (await page.getByRole('button', {name:'Start processing', exact:true}).isEnabled()) throw new Error('Stopped provider enabled.');
+  await page.getByRole('combobox', {name:'ACTIVE STORE'}).selectOption('sqlite');
+  await page.setViewportSize({width:390,height:844});
+  if (await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)) throw new Error('Mobile overflow.');
+  await page.screenshot({path:'.artifacts/console-mobile.png',fullPage:true});
+  await page.setViewportSize({width:1440,height:1100});
+  await page.screenshot({path:'.artifacts/console-desktop.png',fullPage:true});
+  return {enqueue:true,processing:true,deadLetter:true,replay:true,payloadSafe:true,mobile:true};
+}

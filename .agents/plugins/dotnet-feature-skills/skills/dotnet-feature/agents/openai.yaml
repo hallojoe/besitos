@@ -1,0 +1,6 @@
+interface:
+  display_name: ".NET Feature"
+  short_description: "Create, extend, or adopt a .NET feature."
+  default_prompt: "Use $dotnet-feature to implement this feature in the current project."
+policy:
+  allow_implicit_invocation: false

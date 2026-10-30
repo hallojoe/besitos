@@ -1,0 +1,10 @@
+{
+  "console": {
+    "VmHWM": 153489408,
+    "VmRSS": 151941120
+  },
+  "postgres-worker": {
+    "VmHWM": 157831168,
+    "VmRSS": 157831168
+  }
+}

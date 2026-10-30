@@ -1,0 +1,18 @@
+{
+  "name": "dotnet-scaffold",
+  "version": "0.1.0",
+  "description": "Scaffold .NET console applications and use Central Package Management for new projects and solutions.",
+  "author": {
+    "name": "dotnet-skills-starter contributors"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": ".NET Scaffold",
+    "shortDescription": "Scaffold console apps and CPM package setup.",
+    "longDescription": "Create .NET console applications with a Generic Host and apply CPM defaults to new solutions and projects.",
+    "developerName": "Casper",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Use $dotnet-console-scaffold to create a .NET console application."
+  }
+}

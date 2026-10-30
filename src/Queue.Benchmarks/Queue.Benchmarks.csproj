@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Queue.Sqlite/Queue.Sqlite.csproj" />
+    <ProjectReference Include="../Queue.Postgres/Queue.Postgres.csproj" />
+    <ProjectReference Include="../Queue.SqlServer/Queue.SqlServer.csproj" />
+  </ItemGroup>
+</Project>

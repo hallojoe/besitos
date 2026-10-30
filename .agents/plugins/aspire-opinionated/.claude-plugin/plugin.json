@@ -1,0 +1,9 @@
+{
+  "name": "aspire-opinionated",
+  "displayName": "Aspire Opinionated",
+  "version": "0.1.0",
+  "description": "Opinionated conventions and local management UIs for C# Aspire AppHost resources.",
+  "author": {
+    "name": "dotnet-skills-starter contributors"
+  }
+}

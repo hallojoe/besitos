@@ -1,0 +1,80 @@
+{
+  "provider": "sqlite",
+  "databaseVersion": "3.53.3",
+  "queue": "bench-9479441c71dc48ac8dc1c9b48d878478",
+  "mode": "benchmark",
+  "count": 100000,
+  "concurrency": 16,
+  "payloadBytes": 128,
+  "runtime": ".NET 10.0.14",
+  "os": "Omarchy",
+  "architecture": "X64",
+  "logicalProcessors": 8,
+  "enqueueSeconds": 95.1713301,
+  "consumeSeconds": 301.6872219,
+  "completionPerSecond": 331.4691267671486,
+  "completed": 100000,
+  "storageErrors": 0,
+  "peakWorkingSetBytes": 86507520,
+  "managedHeapBytes": 5082944,
+  "cpuSeconds": 150.465126,
+  "claimLatencyHistogram": [
+    {
+      "upperMs": "0.1",
+      "count": 0
+    },
+    {
+      "upperMs": "0.25",
+      "count": 0
+    },
+    {
+      "upperMs": "0.5",
+      "count": 7
+    },
+    {
+      "upperMs": "1",
+      "count": 9768
+    },
+    {
+      "upperMs": "2",
+      "count": 54534
+    },
+    {
+      "upperMs": "5",
+      "count": 22177
+    },
+    {
+      "upperMs": "10",
+      "count": 3442
+    },
+    {
+      "upperMs": "25",
+      "count": 2403
+    },
+    {
+      "upperMs": "50",
+      "count": 1592
+    },
+    {
+      "upperMs": "100",
+      "count": 1965
+    },
+    {
+      "upperMs": "500",
+      "count": 2583
+    },
+    {
+      "upperMs": "\u003E500",
+      "count": 1545
+    }
+  ],
+  "final": {
+    "Ready": 0,
+    "Delayed": 0,
+    "Leased": 0,
+    "Dead": 0,
+    "OldestAvailableAt": null,
+    "ObservedAt": "2026-10-30T18:35:16.544+00:00"
+  },
+  "note": "No handler delay. Storage-only benchmark. Database memory, lock waits, and browser memory require separate observation."
+}

@@ -1,0 +1,133 @@
+{
+  "provider": "postgres",
+  "databaseVersion": "18.1 (Debian 18.1-1.pgdg13\u002B2)",
+  "queue": "batchmeasure-d12cf4b6beac40eeb2aaddb24612a825",
+  "mode": "mixed",
+  "count": 100000,
+  "concurrency": 4,
+  "batchSize": 1,
+  "enqueued": 100000,
+  "enqueuePerSecond": 582.2030808055009,
+  "payloadBytes": 128,
+  "runtime": ".NET 10.0.14",
+  "os": "Omarchy",
+  "architecture": "X64",
+  "logicalProcessors": 8,
+  "enqueueSeconds": 171.7613721,
+  "consumeSeconds": 171.7715717,
+  "completionPerSecond": 582.16851025064,
+  "completed": 100000,
+  "storageErrors": 0,
+  "peakWorkingSetBytes": 89370624,
+  "managedHeapBytes": 2006176,
+  "cpuSeconds": 95.756576,
+  "batchLatencyHistogram": [
+    {
+      "upperMs": "0.1",
+      "count": 0
+    },
+    {
+      "upperMs": "0.25",
+      "count": 0
+    },
+    {
+      "upperMs": "0.5",
+      "count": 0
+    },
+    {
+      "upperMs": "1",
+      "count": 26
+    },
+    {
+      "upperMs": "2",
+      "count": 89205
+    },
+    {
+      "upperMs": "5",
+      "count": 10593
+    },
+    {
+      "upperMs": "10",
+      "count": 81
+    },
+    {
+      "upperMs": "25",
+      "count": 85
+    },
+    {
+      "upperMs": "50",
+      "count": 10
+    },
+    {
+      "upperMs": "100",
+      "count": 0
+    },
+    {
+      "upperMs": "500",
+      "count": 0
+    },
+    {
+      "upperMs": "\u003E500",
+      "count": 0
+    }
+  ],
+  "claimLatencyHistogram": [
+    {
+      "upperMs": "0.1",
+      "count": 0
+    },
+    {
+      "upperMs": "0.25",
+      "count": 0
+    },
+    {
+      "upperMs": "0.5",
+      "count": 1304
+    },
+    {
+      "upperMs": "1",
+      "count": 10711
+    },
+    {
+      "upperMs": "2",
+      "count": 45138
+    },
+    {
+      "upperMs": "5",
+      "count": 48860
+    },
+    {
+      "upperMs": "10",
+      "count": 10471
+    },
+    {
+      "upperMs": "25",
+      "count": 334
+    },
+    {
+      "upperMs": "50",
+      "count": 14
+    },
+    {
+      "upperMs": "100",
+      "count": 0
+    },
+    {
+      "upperMs": "500",
+      "count": 0
+    },
+    {
+      "upperMs": "\u003E500",
+      "count": 0
+    }
+  ],
+  "final": {
+    "Ready": 0,
+    "Delayed": 0,
+    "Leased": 0,
+    "Dead": 0,
+    "OldestAvailableAt": null,
+    "ObservedAt": "2026-10-30T20:57:15.391+00:00"
+  },
+  "note": "No handler delay. Storage-only benchmark. Database memory, lock waits, and browser memory require separate observation."
+}

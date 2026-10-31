@@ -1,9 +1,9 @@
-using System.Net.Http.Json;
 using Besitos;
 using Besitos.Demo;
 using Besitos.Demo.Web;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.AddDemoOpenTelemetry();
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 512 * 1024);
 var key = DemoSecurity.RequireKey(builder.Configuration);
 builder.Services.AddHttpClient();
@@ -68,7 +68,7 @@ app.MapPost("/api/{provider}/load", (string provider, LoadRequest request, Provi
     ForwardAsync(provider, "/load", HttpMethod.Post, request, registry, token));
 app.MapPost("/api/{provider}/load/cancel", (string provider, ProviderRegistry registry, CancellationToken token) =>
     ForwardAsync(provider, "/load/cancel", HttpMethod.Post, null, registry, token));
-app.Run();
+await app.RunAsync();
 
 static async Task<IResult> ForwardAsync(string provider, string path, HttpMethod method, object? body, ProviderRegistry registry, CancellationToken token)
 {
@@ -87,5 +87,3 @@ static async Task<IResult> ForwardAsync(string provider, string path, HttpMethod
     catch (Exception exception) when (exception is HttpRequestException or OperationCanceledException)
     { return Results.Json(new { error = "The worker is unreachable. The action may have completed; inspect state before retrying." }, statusCode: 503); }
 }
-
-public partial class Program;

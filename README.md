@@ -7,6 +7,7 @@ Use SQLite, PostgreSQL, or SQL Server through the same API.
 
 - **Keep work safe.** Persist commands before execution. Recover expired leases after a crash.
 - **Handle failure.** Use bounded retries, dead letters, and explicit replay.
+- **Enqueue together.** Submit bounded batches with one atomic commit.
 - **Control capacity.** Run independent worker loops. Add processes when you need more consumers.
 - **See what happens.** Inspect live events, active leases, and failures in the browser console.
 - **Start deliberately.** Aspire starts the console. You choose which databases and workers to activate.

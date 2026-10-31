@@ -11,6 +11,8 @@
     <PackageReference Include="System.Security.Cryptography.Pkcs" />
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
     <PackageReference Include="Aspire.Hosting.SqlServer" />
+    <PackageReference Include="CommunityToolkit.Aspire.Hosting.Sqlite" />
+    <PackageReference Include="CommunityToolkit.Aspire.Hosting.SqlServer.Extensions" />
     <ProjectReference Include="../QueueDemo.Web/QueueDemo.Web.csproj" />
     <ProjectReference Include="../QueueDemo.Worker/QueueDemo.Worker.csproj" />
   </ItemGroup>

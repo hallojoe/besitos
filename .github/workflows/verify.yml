@@ -8,12 +8,16 @@ on:
         description: Run the 100,000-item provider and concurrency matrix
         type: boolean
         default: false
+      batch_workload:
+        description: Run the 100,000-item batch insertion and mixed workload comparisons
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
   verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -32,6 +36,9 @@ jobs:
       - name: Opt-in large workload
         if: inputs.large_workload == true
         run: python3 src/Queue.SystemTests/benchmark-matrix.py --allow-100k
+      - name: Opt-in batch workload
+        if: inputs.batch_workload == true
+        run: python3 src/Queue.SystemTests/batch-benchmark-matrix.py --allow-100k
       - name: Remove private test containers
         if: always()
         run: python3 src/Queue.SystemTests/cleanup-engines.py
@@ -42,3 +49,4 @@ jobs:
           path: |
             .artifacts/*.trx
             .artifacts/benchmark-*.json
+            .artifacts/batch-measurements/*.json

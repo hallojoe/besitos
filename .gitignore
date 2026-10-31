@@ -11,4 +11,5 @@
 *.db-wal
 .env
 .playwright-cli/
+.sonarqube/
 **/__pycache__/

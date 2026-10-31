@@ -49,6 +49,11 @@ internal sealed class SqliteDialect(string connectionString) : SqlDialect
         return ((SqliteConnection)connection).BeginTransaction(deferred: false);
     }
     public override bool IsRetryableRollback(DbException exception) => exception is SqliteException { SqliteErrorCode: 5 or 6 };
+    public override Task<DbTransaction> BeginBatchAsync(DbConnection connection, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult<DbTransaction>(((SqliteConnection)connection).BeginTransaction(deferred: false));
+    }
     public override bool IsDuplicate(DbException exception) => exception is SqliteException { SqliteExtendedErrorCode: 1555 or 2067 };
 
     public override string SchemaSql => """

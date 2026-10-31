@@ -7,6 +7,7 @@ using Besitos.SqlServer;
 using Besitos.Worker;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.AddDemoOpenTelemetry();
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 512 * 1024);
 var key = DemoSecurity.RequireKey(builder.Configuration);
 var provider = builder.Configuration["Queue:Provider"] ?? throw new InvalidOperationException("Set Queue__Provider explicitly.");
@@ -68,4 +69,4 @@ app.MapPost("/items/{id:guid}/replay", async (Guid id, IQueueAdministration admi
 });
 app.MapPost("/load", (LoadRequest request, LoadGenerator load) => Results.Accepted(value: load.Start(request)));
 app.MapPost("/load/cancel", (LoadGenerator load) => { load.Cancel(); return Results.Accepted(value: load.Status); });
-app.Run();
+await app.RunAsync();

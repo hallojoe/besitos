@@ -18,6 +18,8 @@ public abstract class SqlDialect
     public virtual Task ConfigureAsync(DbConnection connection, CancellationToken cancellationToken) => Task.CompletedTask;
     public virtual Task<DbTransaction> BeginMigrationAsync(DbConnection connection, CancellationToken cancellationToken)
         => connection.BeginTransactionAsync(cancellationToken).AsTask();
+    public virtual Task<DbTransaction> BeginBatchAsync(DbConnection connection, CancellationToken cancellationToken)
+        => connection.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted, cancellationToken).AsTask();
     public virtual string MigrationLockSql => "";
     public string Table => Engine == DatabaseEngine.SqlServer ? "dbo.queue_items" : "queue_items";
     public string VersionTable => Engine == DatabaseEngine.SqlServer ? "dbo.queue_schema" : "queue_schema";

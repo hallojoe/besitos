@@ -1,11 +1,10 @@
-using Besitos;
-
 namespace Besitos.Demo.Worker;
 
 public sealed class LoadGenerator(IQueueStore store, IConfiguration configuration, IHostApplicationLifetime lifetime) : IDisposable
 {
     private readonly object _gate = new();
     private CancellationTokenSource? _cancellation;
+    private bool _disposed;
     private LoadStatus _status = new(false, 0, 0, "idle");
     public LoadStatus Status { get { lock (_gate) return _status; } }
     public LoadStatus Start(LoadRequest request)
@@ -16,30 +15,54 @@ public sealed class LoadGenerator(IQueueStore store, IConfiguration configuratio
         EnvelopeValidation.Validate(envelope, new());
         lock (_gate)
         {
+            ObjectDisposedException.ThrowIf(_disposed, this);
             if (_status.Running) throw new InvalidOperationException("A load is already running.");
-            _cancellation?.Dispose();
             _cancellation = CancellationTokenSource.CreateLinkedTokenSource(lifetime.ApplicationStopping);
+            var cancellation = _cancellation;
             _status = new(true, request.Count, 0, "running");
-            _ = Task.Run(() => GenerateAsync(envelope, request.Count, _cancellation.Token));
+            // Run cleanup even if cancellation arrives before the task starts.
+            _ = Task.Run(() => GenerateAsync(envelope, request.Count, cancellation), CancellationToken.None);
             return _status;
         }
     }
     public void Cancel() { lock (_gate) _cancellation?.Cancel(); }
-    private async Task GenerateAsync(Envelope envelope, int count, CancellationToken token)
+    private async Task GenerateAsync(Envelope envelope, int count, CancellationTokenSource cancellation)
     {
+        var token = cancellation.Token;
         var state = "completed";
+        var pending = false;
         try
         {
-            for (var i = 0; i < count; i++)
+            for (var i = 0; i < count; i += 100)
             {
                 token.ThrowIfCancellationRequested();
-                await store.EnqueueAsync(envelope, token);
-                lock (_gate) _status = _status with { Enqueued = i + 1 };
+                var batch = Enumerable.Range(0, Math.Min(100, count - i))
+                    .Select(_ => envelope with { Id = Guid.NewGuid() }).ToArray();
+                pending = true;
+                await store.EnqueueBatchAsync(batch, token);
+                pending = false;
+                lock (_gate) _status = _status with { Enqueued = i + batch.Length };
             }
         }
-        catch (OperationCanceledException) { state = "cancelled"; }
-        catch { state = "failed; last enqueue may be uncertain"; }
-        finally { lock (_gate) _status = _status with { Running = false, State = state }; }
+        catch (OperationCanceledException) { state = pending ? "cancelled; last batch may be uncertain" : "cancelled"; }
+        catch { state = pending ? "failed; last batch may be uncertain" : "failed"; }
+        finally
+        {
+            lock (_gate)
+            {
+                _cancellation = null;
+                _status = _status with { Running = false, State = state };
+            }
+            cancellation.Dispose();
+        }
     }
-    public void Dispose() => Cancel();
+    public void Dispose()
+    {
+        lock (_gate)
+        {
+            if (_disposed) return;
+            _disposed = true;
+            _cancellation?.Cancel();
+        }
+    }
 }

@@ -6,4 +6,5 @@ var console = builder.AddQueueConsole(key);
 builder.AddSqliteWorker(console, key);
 builder.AddPostgresWorker(console, key);
 builder.AddSqlServerWorker(console, key);
-builder.Build().Run();
+builder.AddSonarQube();
+await builder.Build().RunAsync();

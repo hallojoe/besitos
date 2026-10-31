@@ -28,10 +28,15 @@ async page => {
   await page.getByRole('combobox', {name:'ACTIVE STORE'}).selectOption('postgres');
   if (await page.getByRole('button', {name:'Start processing', exact:true}).isEnabled()) throw new Error('Stopped provider enabled.');
   await page.getByRole('combobox', {name:'ACTIVE STORE'}).selectOption('sqlite');
+  await page.getByText('Generate a bounded workload',{exact:true}).click();
+  await page.getByRole('spinbutton',{name:'Item count · maximum 100,000'}).fill('250');
+  await page.getByRole('button',{name:'Generate',exact:true}).click();
+  await page.waitForFunction(() => document.getElementById('load-state').textContent.includes('completed') && document.getElementById('load-progress').value === 250);
+  if (Number((await page.locator('#ready').textContent()).replaceAll(',','')) < 250) throw new Error('Batch workload is missing.');
   await page.setViewportSize({width:390,height:844});
   if (await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)) throw new Error('Mobile overflow.');
   await page.screenshot({path:'.artifacts/console-mobile.png',fullPage:true});
   await page.setViewportSize({width:1440,height:1100});
   await page.screenshot({path:'.artifacts/console-desktop.png',fullPage:true});
-  return {enqueue:true,processing:true,deadLetter:true,replay:true,payloadSafe:true,mobile:true};
+  return {enqueue:true,processing:true,deadLetter:true,replay:true,payloadSafe:true,batchLoad:true,mobile:true};
 }

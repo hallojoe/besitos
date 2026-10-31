@@ -3,6 +3,21 @@
 Verification date: 2026-10-30.
 All engine checks use actual databases. Fault doubles cover worker error handling only.
 
+The later [batch insertion measurements](batch-measurements.md) extend these original single-item results.
+
+## Refactoring and execution deadlines
+
+The storage and worker refactor preserved the existing 38 local tests and both 76-test provider runs.
+The subsequent optional deadline feature increased coverage to 48 local tests and 90 tests per provider run.
+Both final provider runs passed, with SQL Server READ_COMMITTED_SNAPSHOT disabled, then enabled.
+The full solution built with zero warnings and zero errors.
+Concurrent schema initialization also passed on all three engines.
+
+Deadline checks cover late results, cancellation, blocked handlers, asynchronous disposal, shutdown, metrics, and pending acknowledgements.
+Fake time controls expiry. Real-engine cases verify cancellation and retained leases across all providers.
+Existing 100,000-item measurements were not rerun for this change.
+See [improvement priorities](improvement-priorities.md) for completed changes and remaining work.
+
 ## Reproduce
 
 ```bash
@@ -36,10 +51,10 @@ Browser checks are available locally through `BESITOS_BROWSER=1`.
 Retained credentials live only in ignored `.artifacts/test-engines.json`, with owner-only permissions.
 Never upload that file. Run `cleanup-engines.py` after retained-container checks.
 
-## Final functional results
+## Original functional results
 
 The full solution built with zero warnings and zero errors.
-The final suite passed 46 tests with SQL Server READ_COMMITTED_SNAPSHOT disabled.
+The original suite passed 46 tests with SQL Server READ_COMMITTED_SNAPSHOT disabled.
 It passed the same 46 tests with that setting enabled.
 Eight independent initializer processes also passed against each fresh engine schema.
 Formatting, Python syntax, and JavaScript syntax checks passed.

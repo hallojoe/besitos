@@ -1,5 +1,5 @@
 using System.Security.Cryptography;
-using Aspire.Hosting.ApplicationModel;
+using System.Text.Json;
 
 namespace Besitos.Demo.AppHost;
 
@@ -17,12 +17,22 @@ internal static class QueueResources
     public static IResourceBuilder<ProjectResource> AddSqliteWorker(this IDistributedApplicationBuilder builder,
         IResourceBuilder<ProjectResource> console, IResourceBuilder<ParameterResource> key)
     {
-        // Computing this path does not create the directory or open the SQLite file.
         var directory = builder.Configuration["SqliteDirectory"] ?? Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "../../.data"));
         directory = Path.GetFullPath(directory, builder.AppHostDirectory);
+        builder.AddQueueSqliteDatabase(directory);
         var connection = new System.Data.Common.DbConnectionStringBuilder { ["Data Source"] = Path.Combine(directory, "queue.db") };
         return builder.AddQueueWorker("sqlite", console, key)
             .WithEnvironment("ConnectionStrings__queue", connection.ConnectionString);
+    }
+
+    private static IResourceBuilder<SqliteResource> AddQueueSqliteDatabase(this IDistributedApplicationBuilder builder, string directory)
+    {
+        var database = builder.AddSqlite("sqlite-queue", directory, "queue.db");
+        if (builder.ExecutionContext.IsRunMode)
+        {
+            database.WithSqliteWeb(ui => ui.WithExplicitStart());
+        }
+        return database;
     }
 
     public static IResourceBuilder<ProjectResource> AddPostgresWorker(this IDistributedApplicationBuilder builder,
@@ -33,11 +43,43 @@ internal static class QueueResources
     }
 
     private static IResourceBuilder<PostgresDatabaseResource> AddQueuePostgresDatabase(this IDistributedApplicationBuilder builder)
-        => builder.AddPostgres("postgres")
+    {
+        var server = builder.AddPostgres("postgres")
             .WithImageTag("18.1")
             .WithDataVolume("besitos-postgres-data")
-            .WithExplicitStart()
-            .AddDatabase("postgres-queue", "besitos");
+            .WithExplicitStart();
+        if (builder.ExecutionContext.IsRunMode)
+        {
+            // Aspire's default server list also includes the unrelated SonarQube database.
+            server.WithPgAdmin(ui => ui.WithExplicitStart()
+                .WithEnvironment("PGADMIN_SERVER_JSON_FILE", "/pgadmin4/queue-servers.json")
+                .WithContainerFiles("/pgadmin4", async (_, cancellationToken) =>
+                [
+                    new ContainerFile
+                    {
+                        Name = "queue-servers.json",
+                        Contents = JsonSerializer.Serialize(new
+                        {
+                            Servers = new Dictionary<string, object>
+                            {
+                                ["1"] = new
+                                {
+                                    Name = server.Resource.Name,
+                                    Group = "Servers",
+                                    Host = server.Resource.Name,
+                                    Port = server.Resource.PrimaryEndpoint.TargetPort,
+                                    Username = "postgres",
+                                    SSLMode = "prefer",
+                                    MaintenanceDB = "besitos",
+                                    PasswordExecCommand = $"echo '{await server.Resource.PasswordParameter.GetValueAsync(cancellationToken)}'"
+                                }
+                            }
+                        })
+                    }
+                ]));
+        }
+        return server.AddDatabase("postgres-queue", "besitos");
+    }
 
     public static IResourceBuilder<ProjectResource> AddSqlServerWorker(this IDistributedApplicationBuilder builder,
         IResourceBuilder<ProjectResource> console, IResourceBuilder<ParameterResource> key)
@@ -47,11 +89,17 @@ internal static class QueueResources
     }
 
     private static IResourceBuilder<SqlServerDatabaseResource> AddQueueSqlServerDatabase(this IDistributedApplicationBuilder builder)
-        => builder.AddSqlServer("sqlserver")
+    {
+        var server = builder.AddSqlServer("sqlserver")
             .WithImageTag("2022-CU22-ubuntu-22.04")
             .WithDataVolume("besitos-sqlserver-data")
-            .WithExplicitStart()
-            .AddDatabase("sqlserver-queue", "besitos");
+            .WithExplicitStart();
+        if (builder.ExecutionContext.IsRunMode)
+        {
+            server.WithDbGate(ui => ui.WithExplicitStart());
+        }
+        return server.AddDatabase("sqlserver-queue", "besitos");
+    }
 
     private static IResourceBuilder<ProjectResource> AddQueueWorker(this IDistributedApplicationBuilder builder, string provider,
         IResourceBuilder<ProjectResource> console, IResourceBuilder<ParameterResource> key)

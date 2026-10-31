@@ -3,6 +3,7 @@
 These JSON files contain observed results from the documented verification environment.
 Read [verification](../docs/verification.md) for conditions, interpretation, and reproduction commands.
 
+- [`batches/`](batches/): atomic insertion and mixed workload comparisons.
 - `benchmark-*.json`: all nine provider and concurrency measurements.
 - `browser-load-result.json`: the live 100,000-item console run.
 - `browser-process-memory.json`: sampled console and worker process memory.

@@ -87,6 +87,26 @@ try:
         wait(lambda:request('/api/providers')[0]['state']=='ready')
         with stream(cursor) as response:assert 'history-gap' in '\n'.join(read_event(response))
         print('HTTP authentication, origin protection, SSE replay/reset, open-stream shutdown, heartbeat recovery PASS',flush=True)
+        def snapshot():
+            req=urllib.request.Request(f'http://127.0.0.1:{worker_port}/snapshot',headers={'X-Besitos-Key':key})
+            with urllib.request.urlopen(req,timeout=5) as response:return json.loads(response.read())
+        headers={'X-Besitos-Request':'console'}
+        request('/api/sqlite/load',{'count':250},headers)
+        wait(lambda:not snapshot()['load']['running'])
+        complete=snapshot()
+        assert complete['load']['enqueued']==250 and complete['stats']['ready']==250
+        request('/api/sqlite/load',{'count':100000},headers)
+        request('/api/sqlite/load/cancel',{},headers)
+        wait(lambda:not snapshot()['load']['running'])
+        cancelled=snapshot()
+        assert cancelled['load']['state'].startswith('cancelled')
+        confirmed=cancelled['load']['enqueued']
+        assert confirmed<100000 and confirmed%100==0
+        assert 0<=cancelled['stats']['ready']-250-confirmed<=100
+        request('/api/sqlite/control/start',{},headers)
+        wait(lambda:all(snapshot()['stats'][state]==0 for state in ['ready','delayed','leased','dead']),seconds=60)
+        request('/api/sqlite/control/pause',{},headers)
+        print('HTTP batch generation, confirmed progress, cancellation, and final accounting PASS',flush=True)
         if os.environ.get('BESITOS_BROWSER')=='1':
             subprocess.run(['playwright-cli','-s=besitos-system','open',url],cwd=root,check=True,stdout=subprocess.DEVNULL)
             try:

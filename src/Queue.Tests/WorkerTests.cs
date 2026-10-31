@@ -9,6 +9,48 @@ namespace Besitos.Tests;
 public sealed class WorkerTests
 {
     [Fact]
+    public async Task DisposeKeepsTokensAliveUntilNonCooperativeWorkExits()
+    {
+        using var fixture = await ProviderContractTests.CreateAsync("sqlite");
+        var store = new FaultStore(fixture.Store);
+        var probe = new Probe { Cooperative = false };
+        using var services = Services(store, Options(fixture.Queue), probe);
+        var worker = services.GetRequiredService<QueueWorker>();
+        var id = await fixture.Store.EnqueueAsync(new("test.command", "", QueueName: fixture.Queue));
+        await worker.StartAsync(default);
+        try
+        {
+            await UntilAsync(() => probe.Started == 1);
+            var handle = store.ClaimToken.WaitHandle.SafeWaitHandle;
+            worker.Dispose();
+            worker.Dispose();
+            Assert.True(store.ClaimToken.IsCancellationRequested);
+            Assert.False(handle.IsClosed);
+            Assert.Throws<ObjectDisposedException>(() => { _ = worker.StartAsync(default); });
+            probe.Release.TrySetResult();
+            await UntilAsync(() => handle.IsClosed);
+            Assert.Equal(QueueState.Leased, (await fixture.Store.GetAsync(id))!.State);
+            Assert.Equal(0, store.Acknowledgements);
+            Assert.All(worker.Status.Loops, loop => Assert.Equal("stopped", loop.State));
+        }
+        finally { probe.Release.TrySetResult(); }
+    }
+
+    [Fact]
+    public async Task CancelledStartupDoesNotStartLoops()
+    {
+        using var fixture = await ProviderContractTests.CreateAsync("sqlite");
+        var store = new FaultStore(fixture.Store);
+        using var services = Services(store, Options(fixture.Queue), new Probe());
+        var worker = services.GetRequiredService<QueueWorker>();
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+        Assert.Throws<OperationCanceledException>(() => { _ = worker.StartAsync(cancellation.Token); });
+        Assert.Equal(0, store.Claims);
+        Assert.Empty(worker.Status.Loops);
+    }
+
+    [Fact]
     public async Task PauseDrainsAndRenewalKeepsLongHandlersAlive()
     {
         using var fixture = await ProviderContractTests.CreateAsync("sqlite");
@@ -154,6 +196,7 @@ public sealed class WorkerTests
         public int Started;
         public int Cancelled;
         public bool ThrowTelemetry;
+        public bool Cooperative = true;
         public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public ConcurrentQueue<WorkerEvent> Events { get; } = new();
         public void Record(WorkerEvent value) { if (ThrowTelemetry) throw new IOException(); Events.Enqueue(value); }
@@ -163,7 +206,11 @@ public sealed class WorkerTests
         public async Task HandleAsync(QueueItem item, CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref probe.Started);
-            try { await probe.Release.Task.WaitAsync(cancellationToken); }
+            try
+            {
+                if (probe.Cooperative) await probe.Release.Task.WaitAsync(cancellationToken);
+                else await probe.Release.Task;
+            }
             catch (OperationCanceledException) { Interlocked.Increment(ref probe.Cancelled); throw; }
         }
     }
@@ -185,9 +232,12 @@ public sealed class WorkerTests
         public int ClaimFailures;
         public int Claims;
         public int Acknowledgements;
+        public CancellationToken ClaimToken;
         public Task<Guid> EnqueueAsync(Envelope envelope, CancellationToken cancellationToken = default) => inner.EnqueueAsync(envelope, cancellationToken);
+        public Task<IReadOnlyList<Guid>> EnqueueBatchAsync(IReadOnlyList<Envelope> envelopes, CancellationToken cancellationToken = default) => inner.EnqueueBatchAsync(envelopes, cancellationToken);
         public Task<QueueItem?> ClaimAsync(string queueName, TimeSpan leaseDuration, CancellationToken cancellationToken = default)
         {
+            ClaimToken = cancellationToken;
             Interlocked.Increment(ref Claims);
             if (Interlocked.Decrement(ref ClaimFailures) >= 0) throw new SimulatedDatabaseException();
             return inner.ClaimAsync(queueName, leaseDuration, cancellationToken);

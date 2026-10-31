@@ -22,8 +22,23 @@ The root README presents the product and links to technical guides.
 
 `Queue.Storage` prevents provider drift in validation, mapping, and mutation outcomes.
 Provider classes supply fixed SQL and engine-specific error classification.
+Atomic batch insertion shares validation and transaction handling in `Queue.Storage`.
+Provider-specific strategies preserve the same fingerprint and ownership rules.
+Server insert commands are capped at 200 rows within one batch transaction.
 No SQL identifier comes from user input.
 The library has no dependency on Aspire, the web console, or demo handlers.
+
+`EnvelopeFingerprint` owns the serialized identity used by both enqueue APIs.
+`PreparedBatch` validates and snapshots input before storage retries begin.
+`BatchInserter` executes provider insertion commands inside the supplied transaction.
+`RelationalQueueStore` retains connection, transaction, and rollback-retry ownership.
+`QueueCommandFactory` applies shared parameter types and command timeouts.
+
+Worker handler invocation and acknowledgement retries use separate private methods.
+Lease renewal surrounds both operations. Acknowledgement retries cannot call a handler.
+`ExecutionDeadline` arbitrates handler completion against an optional timeout through the injected time provider.
+Expiry stops renewal and requests cancellation. It never releases a slot occupied by a running handler.
+See [improvement priorities](improvement-priorities.md) for the ordered feature backlog.
 
 ## Cross-process events
 
@@ -59,7 +74,10 @@ There is no broker, Redis, SignalR, Blazor circuit, or separate frontend service
 
 OpenTelemetry-compatible `ActivitySource` and `Meter` instruments exist in the worker.
 Applications can attach their own exporters.
-The demo uses structured HTTP telemetry and normal host logs; it does not install an exporter stack.
+The demo exports structured logs, HTTP traces, runtime metrics, and worker instruments through OpenTelemetry.
+Both demo hosts use the shared `AddDemoOpenTelemetry` setup.
+Aspire supplies the OTLP endpoint, authentication headers, and resource identity.
+The console's HTTP event feed remains separate from Aspire telemetry.
 
 ## Verified API references
 

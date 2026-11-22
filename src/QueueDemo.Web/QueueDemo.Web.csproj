@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
+    <ProjectReference Include="../Queue.Email/Queue.Email.csproj" />
     <ProjectReference Include="../QueueDemo.Shared/QueueDemo.Shared.csproj" />
   </ItemGroup>
 </Project>

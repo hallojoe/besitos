@@ -22,7 +22,7 @@ public static class DemoOpenTelemetry
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddRuntimeInstrumentation()
-                .AddMeter("Besitos.Worker"))
+                .AddMeter("Besitos.Worker", "Besitos.Email"))
             .WithTracing(tracing => tracing
                 .AddSource("Besitos.Worker")
                 .AddAspNetCoreInstrumentation(options =>

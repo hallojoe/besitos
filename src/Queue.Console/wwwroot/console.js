@@ -6,6 +6,7 @@ const contributions = new Map();
 const currentGroup = () => snapshots.find(x => x.provider === provider && x.queueName === group);
 const contribution = () => contributions.get(currentGroup()?.workload);
 function refreshChoices() {
+  if (!snapshots.length) return;
   const choose = (element, values, selected) => {
     if ([...element.options].map(option => option.value).join('|') !== values.join('|'))
       element.replaceChildren(...values.map(value => { const option = text('option', value); option.value = value; return option; }));

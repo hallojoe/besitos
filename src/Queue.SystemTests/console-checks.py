@@ -66,7 +66,7 @@ try:
             try:request(path,{},headers);raise AssertionError('Unprotected control.')
             except urllib.error.HTTPError as e:assert e.code==expected
         worker=launch('Worker',env|{'Demo__WebUrl':url,'Queue__Provider':'sqlite','ConnectionStrings__queue':f'Data Source={database}'},f'http://127.0.0.1:{worker_port}')
-        wait(lambda:request('/api/providers')[0]['state']=='ready')
+        wait(lambda:next(p for p in request('/api/providers') if p['provider']=='sqlite' and p['queueName']=='default')['state']=='ready')
         assert database.exists()
         with stream() as response:
             assert response.headers['Content-Type'].startswith('text/event-stream')
@@ -84,7 +84,7 @@ try:
         response.close()
         web=launch('Web',env,f'http://127.0.0.1:{web_port}')
         wait(lambda:request('/health'))
-        wait(lambda:request('/api/providers')[0]['state']=='ready')
+        wait(lambda:next(p for p in request('/api/providers') if p['provider']=='sqlite' and p['queueName']=='default')['state']=='ready')
         with stream(cursor) as response:assert 'history-gap' in '\n'.join(read_event(response))
         print('HTTP authentication, origin protection, SSE replay/reset, open-stream shutdown, heartbeat recovery PASS',flush=True)
         def snapshot():

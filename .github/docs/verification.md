@@ -46,8 +46,20 @@ It tests SQL Server with READ_COMMITTED_SNAPSHOT disabled, then enabled.
 The process checks restart those test databases and kill only worker processes they created.
 The browser check requires `playwright-cli` and its Chromium browser.
 
-The GitHub workflow runs the engine, process, HTTP, and SSE checks.
-It includes an explicit workflow-dispatch option for the large workload matrix.
+The **Verify queue behavior** workflow runs on pushes and pull requests.
+It builds the solution and runs tests without external services.
+It includes SQLite tests and starts no containers.
+
+Run **Full system verification** manually from GitHub Actions when engine and process checks are needed.
+Select the branch, then choose **Run workflow**.
+This workflow starts disposable containers and runs provider, Azure Storage, email, process, HTTP, and SSE checks.
+The large workload and batch workload inputs remain optional and default to disabled.
+To trigger the same checks from the command line:
+
+```bash
+gh workflow run system-tests.yml --ref develop
+```
+
 Browser checks are available locally through `BESITOS_BROWSER=1`.
 
 Retained credentials live only in ignored `.artifacts/test-engines.json`, with owner-only permissions.

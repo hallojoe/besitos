@@ -102,7 +102,7 @@ public sealed class RuntimeTests
         public bool FailCleanup;
         public int Disposals;
         public QueueInstanceCapabilities Capabilities { get; } = new(
-            new("external", "1.0", 1, new(BatchAtomicity.Partial, DeduplicationScope.None,
+            new("external", "1.0", 1, new(BatchAtomicity.Unsupported, DeduplicationScope.None,
                 RecoveryMode.VisibilityTimeout, StatisticsAccuracy.None, false, false)), new(),
             TimeSpan.Zero, TimeSpan.FromMilliseconds(50), TimeSpan.FromHours(1));
         public QueueStoreInstance Instance() => new(this, Capabilities, this, owner: this);

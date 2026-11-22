@@ -20,7 +20,8 @@ public sealed class WorkerAdministration(IServiceProvider services, QueueAdminis
     private QueueStoreInstance? Instance => options.GroupName is { } group
         ? services.GetRequiredService<QueueRuntime>().GetStore(services.GetRequiredService<QueueRuntime>().Topology.Groups.Single(g => g.Name == group).Store)
         : null;
-    public IQueueStore Store => Instance?.Store ?? services.GetRequiredService<IQueueStore>();
+    public IQueueStore? Store => options.GroupName is null ? services.GetService<IQueueStore>() : Instance?.Store;
+    public IQueueSubmission? Submission => options.GroupName is null ? services.GetService<IQueueSubmission>() : Instance?.Submission;
     public IQueueAdministration? Items => options.GroupName is null ? services.GetService<IQueueAdministration>() : Instance?.Administration;
     public QueueInstanceCapabilities? Capabilities => options.GroupName is null ? services.GetService<IQueueCapabilities>()?.Capabilities : Instance?.Capabilities;
 
@@ -62,14 +63,23 @@ public static class WorkerAdministrationRegistration
         app.MapGet("/capabilities", (WorkerAdministration administration) => administration.Capabilities);
         app.MapPost("/enqueue", async (Envelope envelope, WorkerAdministration administration, CancellationToken token) =>
         {
+            if (administration.Store is not { } store) return Unavailable();
             administration.Validate(envelope);
-            return Results.Ok(new { id = await administration.Store.EnqueueAsync(envelope, token) });
+            return Results.Ok(new { id = await store.EnqueueAsync(envelope, token) });
         });
         app.MapPost("/enqueue/batch", async (Envelope[] envelopes, WorkerAdministration administration, CancellationToken token) =>
         {
             if (envelopes.Length is < 1 or > 100) throw new ArgumentException("Use 1–100 envelopes per request.");
+            if (administration.Store is not { } store) return Unavailable();
             foreach (var envelope in envelopes) administration.Validate(envelope);
-            return Results.Ok(await administration.Store.EnqueueBatchAsync(envelopes, token));
+            return Results.Ok(await store.EnqueueBatchAsync(envelopes, token));
+        });
+        app.MapPost("/enqueue/results", async (Envelope[] envelopes, WorkerAdministration administration, CancellationToken token) =>
+        {
+            if (administration.Submission is not { } submission) return Unavailable();
+            if (envelopes.Length is < 1 or > 100) throw new ArgumentException("Use 1–100 envelopes per request.");
+            foreach (var envelope in envelopes) administration.Validate(envelope);
+            return Results.Ok(await submission.SubmitBatchAsync(envelopes, token));
         });
         app.MapGet("/items", async (WorkerAdministration target, int? state, int? size, DateTimeOffset? created, Guid? after, CancellationToken token) =>
         {

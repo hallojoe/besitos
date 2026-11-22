@@ -6,7 +6,7 @@ namespace Besitos.ExtensionFixture;
 public sealed class FixtureProvider : IQueueDeliveryFactory, IAsyncDisposable
 {
     public static QueueProviderDescriptor Descriptor { get; } = new("fixture", "1.0", 1,
-        new(BatchAtomicity.Partial, DeduplicationScope.None, RecoveryMode.VisibilityTimeout, StatisticsAccuracy.None, false, false));
+        new(BatchAtomicity.Unsupported, DeduplicationScope.None, RecoveryMode.VisibilityTimeout, StatisticsAccuracy.None, false, false));
     public QueueInstanceCapabilities Capabilities { get; } = new(Descriptor, new(), TimeSpan.Zero,
         TimeSpan.FromMilliseconds(50), TimeSpan.FromHours(1));
     public TaskCompletionSource Settled { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);

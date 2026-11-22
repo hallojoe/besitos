@@ -1,6 +1,6 @@
 namespace Besitos;
 
-public enum BatchAtomicity { Atomic, Partial }
+public enum BatchAtomicity { Atomic, Partial, Unsupported }
 public enum DeduplicationScope { None, ExistingItem }
 public enum RecoveryMode { Explicit, VisibilityTimeout }
 public enum StatisticsAccuracy { None, Exact, Approximate }

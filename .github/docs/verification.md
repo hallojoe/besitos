@@ -1,5 +1,7 @@
 # Verification
 
+Azure Storage validation is recorded separately in [Azure measurements](azure-storage-measurements.md).
+
 Verification date: 2026-10-30.
 All engine checks use actual databases. Fault doubles cover worker error handling only.
 
@@ -180,3 +182,23 @@ The tests do not establish exactly-once external effects or a throughput SLA.
 They do not certify every operating system, database configuration, proxy, or failure mode.
 The SQL Server container was tested on Linux x86-64 only.
 No public dashboard deployment or production authorization system was tested.
+
+## Queue groups, email, and benchmark console verification
+
+The 2026-11-10 validation built the complete solution with zero warnings and errors.
+Both SQL Server isolation modes passed all 120 tests. The final focused suite passed 14 tests.
+The first full run hit the existing overlapping-producer/consumer timeout. Both full reruns passed.
+This change does not repair that intermittent relational test failure.
+
+All four providers passed email group isolation, replica restart, console outage, and cancellation checks.
+Each provider delivered 300 test emails through 30 SMTP connections. Three email replicas used two slots each.
+Aspire showed one default replica and three email replicas per provider, with Mailpit readiness dependencies.
+Three Aspire-managed SQLite email replicas also became healthy and reported their configured concurrency.
+
+Browser checks passed modal visibility, keyboard controls, group selection, email generation, and mobile layouts.
+Saved benchmark medians matched all three repetitions across four providers and three concurrency settings.
+Synthetic failed runs and historical runs stayed outside matched comparison charts.
+Existing process, restart, telemetry outage, Azure, HTTP protection, and SSE checks also passed.
+
+See the [36 measured runs](../measurements/comparison/README.md) and [verification summary](../measurements/comparison/verification.json).
+Disposable test containers were removed after validation.

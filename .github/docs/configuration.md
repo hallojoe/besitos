@@ -6,7 +6,7 @@ Environment variables use double underscores for configuration sections.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `Queue__Provider` | Required | `sqlite`, `postgres`, or `sqlserver` |
+| `Queue__Provider` | Required | `sqlite`, `postgres`, `sqlserver`, or `azurestorage` |
 | `ConnectionStrings__queue` | Required | Driver connection string |
 | `Queue__Name` | `default` | Shared named queue |
 | `Worker__Concurrency` | `4` | Independent loops; range 1–128 |
@@ -21,6 +21,8 @@ Environment variables use double underscores for configuration sections.
 
 The reusable `QueueWorkerOptions.AutoProcess` default is `true`.
 The demo executable overrides that default to `false`.
+The AppHost overrides concurrency to one slot per replica. Configure `Groups__default__Concurrency` or `Groups__many-email__Concurrency` there.
+See [queue groups and email](groups-and-email.md) for replicas, SMTP, and Mailpit settings.
 Empty polls increase from roughly 100 ms to two seconds, with jitter.
 Recovery operates independently of processing capacity and continues while paused.
 Each recovery pass changes at most 100 rows.
@@ -65,6 +67,11 @@ Queue state remains authoritative; telemetry remains best effort.
 | `Providers__sqlite` | `http://127.0.0.1:5211` |
 | `Providers__postgres` | `http://127.0.0.1:5212` |
 | `Providers__sqlserver` | `http://127.0.0.1:5213` |
+| `Providers__azurestorage` | Required for standalone Azure worker access |
+
+Group endpoints use `WorkerGroups__{provider}__{group}__Endpoint`.
+The corresponding `Replicas` and `Concurrency` settings describe expected worker capacity.
+Legacy `Providers__{provider}` settings target the default group.
 
 Pass `--urls http://127.0.0.1:5210` for standalone web hosting.
 Aspire supplies its own endpoint addresses and an internal generated secret.
@@ -80,10 +87,14 @@ The console and started workers export structured logs, metrics, and traces to A
 Export requires `OTEL_EXPORTER_OTLP_ENDPOINT`. Aspire supplies this setting and its authentication headers automatically.
 Standalone runs without this setting do not export telemetry.
 Worker traces and counters use the `Besitos.Worker` instrumentation name.
+Email counters and batch durations use `Besitos.Email`.
 Health probes are excluded from traces. Existing log-level filters still apply.
 Database containers and database UIs do not emit application OpenTelemetry by default.
 
 ## Bounds
+
+Azure additionally limits initial JSON messages to 40 KiB, delays to seven days, and leases to at least one second.
+See [Azure Storage](azure-storage.md) for native recovery, approximate counts, and batch semantics.
 
 | Resource | Bound |
 | --- | --- |
@@ -113,7 +124,8 @@ Database containers and database UIs do not emit application OpenTelemetry by de
 The demo body limit includes JSON escaping and envelope fields.
 It can reject a request below the library payload limit when JSON expansion exceeds the body limit.
 The demo load generator uses a small fixed echo payload.
-It commits batches of 100 items, reports confirmed progress, and supports cancellation.
+It submits groups of 100 items, reports confirmed progress, and supports cancellation.
+Azure sends each group sequentially; relational providers commit each group atomically.
 An interrupted batch can have an uncertain final outcome. Inspect the store before retrying.
 See [atomic batches](batch-insertion.md) for transaction boundaries and byte accounting.
 

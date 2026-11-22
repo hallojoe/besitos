@@ -2,15 +2,15 @@
 
 **Small queue. Durable work. Your database.**
 
-Besitos adds reliable background commands to your existing database.
-Use SQLite, PostgreSQL, or SQL Server through the same API.
+Besitos adds reliable background commands to your database or Azure Storage account.
+Use SQLite, PostgreSQL, SQL Server, or Azure Storage Queues through the worker API.
 
 - **Keep work safe.** Persist commands before execution. Recover expired leases after a crash.
 - **Handle failure.** Use bounded retries, dead letters, and explicit replay.
-- **Enqueue together.** Submit bounded batches with one atomic commit.
+- **Enqueue together.** Submit bounded batches. Database providers commit atomically.
 - **Control capacity.** Run independent worker loops. Add processes when you need more consumers.
-- **See what happens.** Inspect live events, active leases, and failures in the browser console.
-- **Start deliberately.** Aspire starts the console. You choose which databases and workers to activate.
+- **See what happens.** View live events, worker activity, and available queue statistics in the browser console.
+- **Start deliberately.** Aspire starts the console. You choose which stores and workers to activate.
 - **Keep your stack.** Use the library with an ordinary .NET host, without Aspire or the demo.
 
 ```csharp
@@ -27,9 +27,17 @@ await queue.EnqueueAsync(new Envelope(
 Commands keep their original text, media type, and metadata.
 Delivery is **at least once**. Handlers must tolerate duplicate execution.
 
-[Start the demo](.github/docs/quickstart.md) · [Use the library](.github/docs/library.md) · [Read the test results](.github/docs/verification.md)
+[Azure Storage behavior](.github/docs/azure-storage.md) · [Start the demo](.github/docs/quickstart.md) · [Use the library](.github/docs/library.md) · [Read the test results](.github/docs/verification.md)
 
 ![Besitos queue console](.github/assets/console.png)
 
 Built for .NET 10. Designed for backlogs up to 100,000 items.
 [Measured results](.github/docs/verification.md) describe the tested environment and limits.
+
+### Queue groups, email, and benchmark views
+
+The console now separates Operations and saved Benchmarks. Manual enqueue controls open in a modal.
+Each provider has a default group and three email replicas. Mailpit captures generated test emails.
+
+- [Configure groups and batch email](.github/docs/groups-and-email.md)
+- [Interpret and reproduce benchmarks](.github/docs/benchmark-console.md)

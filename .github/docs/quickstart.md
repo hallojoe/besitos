@@ -26,8 +26,9 @@ The HTTP profile is for local development. The HTTPS profile uses the local deve
 3. For SQLite, start `sqlite-worker`.
 4. For PostgreSQL, start `postgres`, then `postgres-worker`.
 5. For SQL Server, start `sqlserver`, then `sqlserver-worker`.
-6. Select the provider in the console.
-7. Enqueue a command. Select **Start processing**.
+6. For Azure Storage, start `azurite`, then `azurestorage-worker`.
+7. Select the provider and **Default** group in the console.
+8. Select **Enqueue a command** to open its modal. Submit it, then select **Start processing**.
 
 Starting AppHost starts only the console.
 Database containers, database UIs, and workers use Aspire's `WithExplicitStart` API.
@@ -57,7 +58,14 @@ aspire wait sqlite-worker --apphost src/QueueDemo.AppHost/QueueDemo.AppHost.cspr
 ```
 
 Use **Pause** to stop new claims. Active handlers finish with lease renewal enabled.
-Change `Worker__Concurrency`, then restart the worker to change X.
+For Aspire, configure `Groups__default__Concurrency` and restart the AppHost.
+Standalone workers use `Worker__Concurrency`.
+
+For email, start Mailpit and the chosen provider's `many-email` replicas.
+Select **Many emails**, open **Generate test emails**, and submit the workload.
+Select **Start processing**, then use **Open Mailpit inbox** to inspect messages.
+See [queue groups and email](groups-and-email.md) for retry behavior and configuration.
+Open **Benchmarks** to [compare saved measurements](benchmark-console.md).
 
 Try these presets:
 
@@ -193,3 +201,9 @@ aspire stop --apphost src/QueueDemo.AppHost/QueueDemo.AppHost.csproj
 
 Normal shutdown preserves database volumes and the SQLite file.
 See [storage operations](storage.md) before resetting local data.
+
+## Azure Storage
+
+Start `azurite`, then `azurestorage-worker`, from the Aspire dashboard.
+Select Azure Storage in the console, enqueue work, and start processing.
+See [Azure Storage](azure-storage.md) for native limits and approximate statistics.

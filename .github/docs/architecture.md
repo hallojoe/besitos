@@ -11,6 +11,7 @@ The root README presents the product and links to technical guides.
 | `Queue.Sqlite` | SQLite schema, locking, registration |
 | `Queue.Postgres` | PostgreSQL schema, locking, registration |
 | `Queue.SqlServer` | SQL Server schema, locking, registration |
+| `Queue.AzureStorage` | Native Storage Queues, visibility receipts, and poison transfers |
 | `Queue.Worker` | Scoped handlers, bounded loops, renewal, recovery, shutdown |
 | `QueueDemo.Shared` | HTTP security and cross-process message contracts |
 | `QueueDemo.Worker` | Explicit store initialization, controls, safe handlers, telemetry |
@@ -20,7 +21,10 @@ The root README presents the product and links to technical guides.
 | `Queue.SystemTests` | Process, container, browser, and load checks |
 | `Queue.Benchmarks` | Bounded storage measurements |
 
-`Queue.Storage` prevents provider drift in validation, mapping, and mutation outcomes.
+`Queue.AzureStorage` implements the worker interfaces directly, without the relational base class.
+Its [native limitations](azure-storage.md) are explicit.
+
+`Queue.Storage` prevents relational provider drift in validation, mapping, and mutation outcomes.
 Provider classes supply fixed SQL and engine-specific error classification.
 Atomic batch insertion shares validation and transaction handling in `Queue.Storage`.
 Provider-specific strategies preserve the same fingerprint and ownership rules.
@@ -47,11 +51,15 @@ A separate sender posts authenticated batches to the console.
 The sender drops telemetry under pressure or receiver failure.
 Queue execution never waits for telemetry delivery.
 
-A heartbeat identifies initialized providers and active worker processes.
-The console polls each active provider once every two seconds.
+A heartbeat identifies the provider, queue group, and worker process.
+The console polls each active group once every two seconds.
+Queue statistics come from one replica because replicas share storage.
+Heartbeat responses carry the group's desired processing state.
+The console owns load jobs and cancellation; proxy routing cannot split their state.
 It queries the configured worker endpoint, which queries its initialized database.
 The console has no database driver reference and cannot create the SQLite file.
-After a console restart, new heartbeats reconstruct readiness.
+After a console restart, new heartbeats reconstruct readiness and reset processing to paused.
+During console outages, workers retain their last processing state.
 A snapshot can remain visible after disconnection, but it is marked stale.
 
 The web process stores a bounded event ring and bounded client subscriptions.
@@ -70,7 +78,7 @@ They are not durable totals. Telemetry is not an audit trail.
 
 The implementation does not provide exactly-once effects, strict FIFO, workflows, cron, priorities, or permanent deduplication.
 It does not provide public dashboard hosting, durable event history, or dynamic concurrency changes.
-There is no broker, Redis, SignalR, Blazor circuit, or separate frontend service.
+There is no Service Bus, Redis, SignalR, Blazor circuit, or separate frontend service.
 
 OpenTelemetry-compatible `ActivitySource` and `Meter` instruments exist in the worker.
 Applications can attach their own exporters.

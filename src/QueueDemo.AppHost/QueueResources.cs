@@ -1,3 +1,4 @@
+using Aspire.Hosting.Dotnet;
 using Microsoft.Extensions.Configuration;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -10,14 +11,14 @@ internal static class QueueResources
     public static IResourceBuilder<ParameterResource> AddDemoKey(this IDistributedApplicationBuilder builder)
         => builder.AddParameter("demo-key", () => Convert.ToHexString(RandomNumberGenerator.GetBytes(32)), secret: true);
 
-    public static IResourceBuilder<ProjectResource> AddQueueConsole(this IDistributedApplicationBuilder builder, IResourceBuilder<ParameterResource> key)
-        => builder.AddProject<Projects.QueueDemo_Web>("console")
+    public static IResourceBuilder<DotnetProjectResource> AddQueueConsole(this IDistributedApplicationBuilder builder, IResourceBuilder<ParameterResource> key)
+        => builder.AddDotnetProject("console", "../QueueDemo.Web/QueueDemo.Web.csproj")
             .WithHttpEndpoint(name: "http")
             .WithHttpHealthCheck("/health")
             .WithEnvironment("Demo__Key", key);
 
-    public static IResourceBuilder<ProjectResource> AddSqliteWorker(this IDistributedApplicationBuilder builder,
-        IResourceBuilder<ProjectResource> console, IResourceBuilder<ParameterResource> key, IResourceBuilder<MailPitContainerResource> mailpit)
+    public static IResourceBuilder<DotnetProjectResource> AddSqliteWorker(this IDistributedApplicationBuilder builder,
+        IResourceBuilder<DotnetProjectResource> console, IResourceBuilder<ParameterResource> key, IResourceBuilder<MailPitContainerResource> mailpit)
     {
         var directory = builder.Configuration["SqliteDirectory"] ?? Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "../../.data"));
         directory = Path.GetFullPath(directory, builder.AppHostDirectory);
@@ -39,8 +40,8 @@ internal static class QueueResources
         return database;
     }
 
-    public static IResourceBuilder<ProjectResource> AddPostgresWorker(this IDistributedApplicationBuilder builder,
-        IResourceBuilder<ProjectResource> console, IResourceBuilder<ParameterResource> key, IResourceBuilder<MailPitContainerResource> mailpit)
+    public static IResourceBuilder<DotnetProjectResource> AddPostgresWorker(this IDistributedApplicationBuilder builder,
+        IResourceBuilder<DotnetProjectResource> console, IResourceBuilder<ParameterResource> key, IResourceBuilder<MailPitContainerResource> mailpit)
     {
         var database = builder.AddQueuePostgresDatabase();
         builder.AddQueueWorker("postgres", console, key, "many-email", mailpit).WithReference(database, "queue").WaitFor(database);
@@ -86,8 +87,8 @@ internal static class QueueResources
         return server.AddDatabase("postgres-queue", "besitos");
     }
 
-    public static IResourceBuilder<ProjectResource> AddSqlServerWorker(this IDistributedApplicationBuilder builder,
-        IResourceBuilder<ProjectResource> console, IResourceBuilder<ParameterResource> key, IResourceBuilder<MailPitContainerResource> mailpit)
+    public static IResourceBuilder<DotnetProjectResource> AddSqlServerWorker(this IDistributedApplicationBuilder builder,
+        IResourceBuilder<DotnetProjectResource> console, IResourceBuilder<ParameterResource> key, IResourceBuilder<MailPitContainerResource> mailpit)
     {
         var database = builder.AddQueueSqlServerDatabase();
         builder.AddQueueWorker("sqlserver", console, key, "many-email", mailpit).WithReference(database, "queue").WaitFor(database);
@@ -107,8 +108,8 @@ internal static class QueueResources
         return server.AddDatabase("sqlserver-queue", "besitos");
     }
 
-    public static IResourceBuilder<ProjectResource> AddAzureStorageWorker(this IDistributedApplicationBuilder builder,
-        IResourceBuilder<ProjectResource> console, IResourceBuilder<ParameterResource> key, IResourceBuilder<MailPitContainerResource> mailpit)
+    public static IResourceBuilder<DotnetProjectResource> AddAzureStorageWorker(this IDistributedApplicationBuilder builder,
+        IResourceBuilder<DotnetProjectResource> console, IResourceBuilder<ParameterResource> key, IResourceBuilder<MailPitContainerResource> mailpit)
     {
         var queues = builder.AddQueueAzureStorage();
         builder.AddQueueWorker("azurestorage", console, key, "many-email", mailpit).WithReference(queues, "queue").WaitFor(queues);
@@ -121,8 +122,8 @@ internal static class QueueResources
                 .WithDataVolume("besitos-azurite-data").WithExplicitStart())
             .AddQueues("azurestorage-queue");
 
-    private static IResourceBuilder<ProjectResource> AddQueueWorker(this IDistributedApplicationBuilder builder, string provider,
-        IResourceBuilder<ProjectResource> console, IResourceBuilder<ParameterResource> key, string group,
+    private static IResourceBuilder<DotnetProjectResource> AddQueueWorker(this IDistributedApplicationBuilder builder, string provider,
+        IResourceBuilder<DotnetProjectResource> console, IResourceBuilder<ParameterResource> key, string group,
         IResourceBuilder<MailPitContainerResource> mailpit)
     {
         var replicas = builder.Configuration.GetValue($"Groups:{group}:Replicas", group == "default" ? 1 : 3);
@@ -130,7 +131,7 @@ internal static class QueueResources
         if (replicas is < 1 or > 32 || concurrency is < 1 or > 128)
             throw new ArgumentException("Use 1–32 replicas and 1–128 handler slots per replica.");
         var name = group == "default" ? $"{provider}-worker" : $"{provider}-{group}-worker";
-        var worker = builder.AddProject<Projects.QueueDemo_Worker>(name)
+        var worker = builder.AddDotnetProject(name, "../QueueDemo.Worker/QueueDemo.Worker.csproj")
             .WithReplicas(replicas)
             .WithHttpEndpoint(name: "http")
             .WithHttpHealthCheck("/health")

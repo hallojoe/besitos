@@ -1,10 +1,11 @@
+using Aspire.Hosting.Dotnet;
 using Microsoft.Extensions.Configuration;
 namespace Besitos.Demo.AppHost;
 
 internal static class MailResources
 {
     public static IResourceBuilder<MailPitContainerResource> AddQueueMailpit(this IDistributedApplicationBuilder builder,
-        IResourceBuilder<ProjectResource> console)
+        IResourceBuilder<DotnetProjectResource> console)
     {
         var retention = builder.Configuration.GetValue("Mailpit:MaxMessages", 100_000);
         if (retention < 0) throw new ArgumentException("Mailpit retention cannot be negative.");

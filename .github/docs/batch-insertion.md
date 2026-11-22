@@ -1,5 +1,8 @@
 # Atomic batch insertion
 
+This contract describes the relational providers.
+[Azure Storage batches](azure-storage.md#batches-and-cancellation) use non-atomic individual sends.
+
 ```csharp
 IReadOnlyList<Guid> ids = await queue.EnqueueBatchAsync(
 [
@@ -88,8 +91,8 @@ Only the current batch remains buffered. Progress counts confirmed commits.
 Cancellation retains earlier committed batches and can report uncertainty for the interrupted batch.
 Ordinary enqueue forms and `EnqueueAsync` retain their existing behavior.
 
-Custom `IQueueStore` implementations must implement the new method.
-A fallback that loops over independently committed `EnqueueAsync` calls would violate atomicity.
+Custom `IQueueStore` implementations must implement the batch method and document their guarantees.
+Relational providers guarantee atomicity. The Azure Storage provider explicitly does not.
 Existing `QueueLimits` constructor arguments remain unchanged; batch limits are additional initialization properties.
 
 See [batch measurements](batch-measurements.md) for reproducible comparisons and limitations.

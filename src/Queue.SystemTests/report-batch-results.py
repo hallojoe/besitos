@@ -17,8 +17,11 @@ for path in sorted(source.glob('*.json')):
         shutil.copy2(path,output/path.name);continue
     data=json.loads(path.read_text())
     assert data['count']==data['enqueued']==100000 and data['storageErrors']==0
-    final=data['final'];assert final['Delayed']+final['Leased']+final['Dead']==0
-    assert final['Ready']==(100000 if data['mode']=='enqueue' else 0)
+    final=data['final']
+    if data['provider']!='azurestorage':
+        assert final['Delayed']+final['Leased']+final['Dead']==0
+        assert final['Ready']==(100000 if data['mode']=='enqueue' else 0)
+    else:assert final is None and data['atomicBatchEnqueue'] is False
     if data['mode']=='mixed':assert data['completed']==100000
     results[(data['provider'],data['mode'],data['batchSize'])]=data
     shutil.copy2(path,output/path.name)
@@ -33,7 +36,8 @@ def p95(histogram):
 
 intro='''# Batch insertion measurements
 
-These measurements compare single-item enqueue with explicit atomic batches.
+These measurements compare single-item enqueue with batches.
+Relational batches are atomic. Azure Storage batches send individual messages sequentially.
 They do not establish a universal throughput guarantee.
 
 ## Reproduce
@@ -75,7 +79,7 @@ Memory columns report peak benchmark-process working set, not database-container
 ## Insertion only
 
 No consumers run during these measurements.
-Every result confirms 100,000 ready rows before fixture cleanup.
+Relational results confirm 100,000 ready rows. Azure results confirm 100,000 acknowledged sends.
 Cleanup occurs after timing and does not use the queue completion API.
 
 | Provider | Batch | Inserted/s | Seconds | Relative to single | Batch p95 bucket, ms | Peak MiB |
@@ -86,7 +90,7 @@ ram=environment.get('physicalMemoryBytes')
 host=f"- {environment['os']}.\n- {environment['cpu']}; {environment['logicalProcessors']} logical processors.\n- Physical RAM: {ram/1073741824:.1f} GiB.\n- Filesystem: {environment['filesystem']}; container engine: {environment['containerEngine']}.\n- .NET SDK {environment['dotnetSdk']}. Raw results record runtime and database versions." if ram else f"- Host details: see the raw environment.json file."
 intro=intro.replace('HOST_ENVIRONMENT',host)
 rows=[]
-labels={'sqlite':'SQLite','postgres':'PostgreSQL','sqlserver':'SQL Server'}
+labels={'sqlite':'SQLite','postgres':'PostgreSQL','sqlserver':'SQL Server','azurestorage':'Azure Storage (Azurite)'}
 for provider in labels:
     baseline=results.get((provider,'enqueue',1))
     for size in (1,100,500,1000):
@@ -97,7 +101,7 @@ for provider in labels:
 text=intro+'\n'.join(rows)+'''\n
 ## Producer and four consumers together
 
-Consumers start alongside the producer. Every completed run accounts for 100,000 successful completions and zero remaining rows.
+Consumers start alongside the producer. Every completed run accounts for 100,000 successful completions and, for relational providers, zero remaining rows. Azure counts remain approximate.
 Completion throughput includes the time consumers wait for production. It is not isolated dequeue capacity.
 
 | Provider | Batch | Inserted/s | Enqueue seconds | Completed/s | Completion seconds | Claim p95 bucket, ms | Peak MiB |
@@ -118,23 +122,24 @@ for provider in labels:
         change=(batch['completionPerSecond']/one['completionPerSecond']-1)*100
         text+=f"Its mixed completion rate changed by {change:+.1f}%. Claim p95 buckets changed from {p95(one['claimLatencyHistogram'])} to {p95(batch['claimLatencyHistogram'])} ms.\n\n"
         text+=f"Peak process memory changed from {one['peakWorkingSetBytes']/1048576:.1f} to {batch['peakWorkingSetBytes']/1048576:.1f} MiB.\n\n"
-text+='''Larger batches reduce commit overhead but hold locks longer and can increase memory or consumer latency.
+text+='''Relational batches reduce commit overhead but hold locks longer and can increase memory or consumer latency.
+Azure batches have no atomic commit or server batch-send optimization. Emulator throughput does not predict Azure throughput.
 No batch size is declared universally optimal. The demo retains its bounded 100-item default.
 
 The existing [storage measurements](verification.md) remain separate historical results.
 See [raw batch results](../measurements/batches/) and [API behavior](batch-insertion.md).
 '''
-summary={'completedMeasurements':len(results),'expectedMeasurements':18,'publishedAtUtc':datetime.now(timezone.utc).isoformat(),'tests':{}}
+summary={'completedMeasurements':len(results),'expectedMeasurements':24,'publishedAtUtc':datetime.now(timezone.utc).isoformat(),'tests':{}}
 for isolation in ['OFF','ON']:
     path=root/f'.artifacts/batch-{isolation}.trx'
     if path.exists():
         counters=ET.parse(path).find('.//{*}Counters').attrib
         assert counters['failed']=='0'
         summary['tests']['sqlServerRcsi'+isolation]={'passed':int(counters['passed']),'failed':0}
-text+=f"\nPublished {len(results)} of 18 planned measurements. Every published measurement passed its accounting checks.\n"
+text+=f"\nPublished {len(results)} of 24 planned measurements. Every published measurement passed its accounting checks.\n"
 for isolation,counts in summary['tests'].items():
     text+=f"\nSQL Server READ_COMMITTED_SNAPSHOT {isolation.removeprefix('sqlServerRcsi')}: {counts['passed']} tests passed, with zero failures.\n"
 text+='\n[Browser and HTTP check evidence](../measurements/batches/browser-checks.json) covers progress, cancellation, and final accounting.\n' if (output/'browser-checks.json').exists() else ''
 (output/'verification-summary.json').write_text(json.dumps(summary,indent=2)+'\n')
 (root/'.github/docs/batch-measurements.md').write_text(text)
-print(f'Published {len(results)} of 18 batch measurements.')
+print(f'Published {len(results)} of 24 batch measurements.')

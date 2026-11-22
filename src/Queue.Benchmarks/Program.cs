@@ -1,21 +1,22 @@
+using System.Collections.Concurrent;
 using System.Data.Common;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using Besitos;
+using Besitos.AzureStorage;
 using Besitos.Postgres;
 using Besitos.Sqlite;
 using Besitos.SqlServer;
-using Besitos.Storage;
 using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
 using Npgsql;
 
 if (args.Contains("--help", StringComparer.Ordinal))
 {
-    Console.WriteLine("Usage: --provider sqlite|postgres|sqlserver --count 1000 --concurrency 4 [--allow-100k] [--queue name] [--mode benchmark|enqueue|consume|mixed] [--batch-size 1|100|500|1000]");
-    Console.WriteLine("Set BESITOS_CONNECTION for a server database. Large runs require --allow-100k.");
+    Console.WriteLine("Usage: --provider sqlite|postgres|sqlserver|azurestorage --count 1000 --concurrency 4 [--allow-100k] [--queue name] [--mode benchmark|enqueue|consume|mixed] [--batch-size 1|100|500|1000]");
+    Console.WriteLine("Set BESITOS_CONNECTION for a server database or Azure Storage. Large runs require --allow-100k.");
     return 0;
 }
 
@@ -33,10 +34,13 @@ var batchSize = int.Parse(arguments.GetValueOrDefault("batch-size", "1"));
 var queue = arguments.GetValueOrDefault("queue", $"bench-{Guid.NewGuid():N}");
 if (count is < 1 or > 100_000 || concurrency is < 1 or > 128 || mode is not ("benchmark" or "enqueue" or "consume" or "mixed") || batchSize is not (1 or 100 or 500 or 1000)) throw new ArgumentException("Invalid benchmark options.");
 if (count == 100_000 && !arguments.ContainsKey("allow-100k")) throw new ArgumentException("Pass --allow-100k for the opt-in large workload.");
+if (provider == "azurestorage" && mode == "consume" && !arguments.ContainsKey("count"))
+    throw new ArgumentException("Azure consume mode requires --count as the expected completion count.");
 var connectionString = Environment.GetEnvironmentVariable("BESITOS_CONNECTION") ??
     (provider == "sqlite" ? "Data Source=.artifacts/benchmark.db" : throw new ArgumentException("Set BESITOS_CONNECTION."));
-RelationalQueueStore store = provider switch
+IQueueStore store = provider switch
 {
+    "azurestorage" => new AzureStorageQueueStore(connectionString),
     "sqlite" => new SqliteQueueStore(connectionString),
     "postgres" => new PostgresQueueStore(connectionString),
     "sqlserver" => new SqlServerQueueStore(connectionString),
@@ -44,22 +48,27 @@ RelationalQueueStore store = provider switch
 };
 using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(30));
 Console.CancelKeyPress += (_, e) => { e.Cancel = true; timeout.Cancel(); };
-await store.InitializeAsync(timeout.Token);
-await using DbConnection connection = provider switch
+await ((IQueueSchema)store).InitializeAsync(timeout.Token);
+string? databaseVersion = null;
+if (provider != "azurestorage")
 {
-    "sqlite" => new SqliteConnection(connectionString),
-    "postgres" => new NpgsqlConnection(connectionString),
-    _ => new SqlConnection(connectionString)
-};
-await connection.OpenAsync(timeout.Token);
-var databaseVersion = connection.ServerVersion;
-await connection.CloseAsync();
+    await using DbConnection connection = provider switch
+    {
+        "sqlite" => new SqliteConnection(connectionString),
+        "postgres" => new NpgsqlConnection(connectionString),
+        _ => new SqlConnection(connectionString)
+    };
+    await connection.OpenAsync(timeout.Token);
+    databaseVersion = connection.ServerVersion;
+    await connection.CloseAsync();
+}
 var process = Process.GetCurrentProcess();
 var cpuStart = process.TotalProcessorTime;
 var payload = new string('x', 128);
 var enqueue = new Stopwatch();
 var consume = new Stopwatch();
 long enqueued = 0, completed = 0, failed = 0;
+var seen = new ConcurrentDictionary<Guid, byte>();
 var buckets = new long[12];
 var enqueueBuckets = new long[12];
 double[] bounds = [0.1, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100, 500, double.PositiveInfinity];
@@ -115,11 +124,15 @@ async Task ConsumeAsync()
                     Record(buckets, started);
                     if (item is null)
                     {
-                        if (mode != "mixed" || Interlocked.Read(ref completed) >= count) break;
+                        if (provider == "azurestorage" || mode == "mixed")
+                        {
+                            if (Interlocked.Read(ref completed) >= count) break;
+                        }
+                        else break;
                         await Task.Delay(10, timeout.Token);
                         continue;
                     }
-                    if (item.AttemptCount != 1) throw new InvalidOperationException("A duplicate execution was detected.");
+                    if (item.AttemptCount != 1 || !seen.TryAdd(item.Id, 0)) throw new InvalidOperationException("A duplicate execution was detected.");
                     if (await store.CompleteAsync(item.Id, item.LeaseToken!.Value, timeout.Token) != MutationOutcome.Applied)
                         throw new InvalidOperationException("Completion lost ownership.");
                     Interlocked.Increment(ref completed);
@@ -141,12 +154,17 @@ else
     if (mode != "consume") await ProduceAsync();
     if (mode != "enqueue") await ConsumeAsync();
 }
-var final = await store.GetStatsAsync(queue, timeout.Token);
+var final = store is IQueueAdministration administration ? await administration.GetStatsAsync(queue, timeout.Token) : null;
+var approximateFinal = store is AzureStorageQueueStore azure ? await azure.GetApproximateStatsAsync(queue, timeout.Token) : null;
 process.Refresh();
 var result = new
 {
     provider,
     databaseVersion,
+    storageSdkVersion = provider == "azurestorage" ? typeof(Azure.Storage.Queues.QueueClient).Assembly.GetName().Version?.ToString() : null,
+    serviceApiVersion = provider == "azurestorage" ? AzureStorageQueueStore.ServiceApiVersion : null,
+    emulator = provider == "azurestorage" ? Environment.GetEnvironmentVariable("BESITOS_AZURITE_VERSION") : null,
+    atomicBatchEnqueue = provider != "azurestorage",
     queue,
     mode,
     count,
@@ -170,9 +188,12 @@ var result = new
     batchLatencyHistogram = bounds.Select((bound, i) => new { upperMs = double.IsPositiveInfinity(bound) ? ">500" : bound.ToString(System.Globalization.CultureInfo.InvariantCulture), count = enqueueBuckets[i] }),
     claimLatencyHistogram = bounds.Select((bound, i) => new { upperMs = double.IsPositiveInfinity(bound) ? ">500" : bound.ToString(System.Globalization.CultureInfo.InvariantCulture), count = buckets[i] }),
     final,
+    approximateFinal,
+    validation = provider == "azurestorage" ? "Acknowledged sends and unique completions; queue counts are approximate." : "Exact final queue statistics.",
     note = "No handler delay. Storage-only benchmark. Database memory, lock waits, and browser memory require separate observation."
 };
 Console.WriteLine(JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }));
-if (mode is "benchmark" or "mixed" && (completed != count || final.Ready + final.Delayed + final.Leased + final.Dead != 0)) return 1;
-if (mode == "enqueue" && (enqueued != count || final.Ready != count || final.Leased + final.Dead + final.Delayed != 0)) return 1;
+if (mode is "benchmark" or "mixed" && (completed != count || (final is not null && final.Ready + final.Delayed + final.Leased + final.Dead != 0))) return 1;
+if (mode == "enqueue" && (enqueued != count || (final is not null && (final.Ready != count || final.Leased + final.Dead + final.Delayed != 0)))) return 1;
+if (provider == "azurestorage" && mode == "consume" && completed != count) return 1;
 return 0;

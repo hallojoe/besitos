@@ -3,6 +3,7 @@
 import json
 from contextlib import closing
 from measurement_environment import collect
+from azure_storage_fixture import remove_queue as remove_azure_queue
 import os
 from pathlib import Path
 import re
@@ -24,6 +25,9 @@ if not environment.exists() or '--resume' not in sys.argv:
 def remove_queue(provider,queue,database):
     # Only remove this runner's generated benchmark queue in its private fixture.
     assert re.fullmatch(r'batchmeasure-[a-f0-9]{32}',queue)
+    if provider=='azurestorage':
+        remove_azure_queue(settings,queue)
+        return
     sql=f"DELETE FROM queue_items WHERE queue_name='{queue}'"
     if provider=='sqlite':
         with closing(sqlite3.connect(database)) as connection:
@@ -34,7 +38,7 @@ def remove_queue(provider,queue,database):
         subprocess.run([settings['engine'],'exec','-e','SQLCMDPASSWORD',settings['sqlserver'],'/opt/mssql-tools18/bin/sqlcmd',
             '-S','localhost','-U','sa','-C','-b','-d','besitos','-Q',sql],env=os.environ|{'SQLCMDPASSWORD':settings['password']},check=True,stdout=subprocess.DEVNULL)
 
-for provider in ('sqlite','postgres','sqlserver'):
+for provider in ('sqlite','postgres','sqlserver','azurestorage'):
     for mode,sizes in [('enqueue',(1,100,500,1000)),('mixed',(1,100))]:
         for size in sizes:
             path=output/f'{provider}-{mode}-b{size}.json'
@@ -45,16 +49,20 @@ for provider in ('sqlite','postgres','sqlserver'):
             # Separate SQLite files prevent retained free pages from favoring later runs.
             if provider=='sqlite':database=root/f'.artifacts/{queue}.db'
             env=os.environ|{'BESITOS_CONNECTION':f'Data Source={database}' if provider=='sqlite' else settings[provider+'Connection']}
+            if provider=='azurestorage':env['BESITOS_AZURITE_VERSION']=settings['azuriteVersion']
             with path.open('w') as handle:
                 subprocess.run(['dotnet',str(root/'src/Queue.Benchmarks/bin/Debug/net10.0/Queue.Benchmarks.dll'),
                     '--provider',provider,'--count','100000','--allow-100k','--concurrency','4','--batch-size',str(size),
                     '--mode',mode,'--queue',queue],cwd=root,env=env,stdout=handle,check=True)
             result=json.loads(path.read_text())
             assert result['enqueued']==100000 and result['storageErrors']==0
-            assert result['final']['Ready']==(100000 if mode=='enqueue' else 0)
-            assert result['final']['Leased']+result['final']['Delayed']+result['final']['Dead']==0
+            if provider!='azurestorage':
+                assert result['final']['Ready']==(100000 if mode=='enqueue' else 0)
+                assert result['final']['Leased']+result['final']['Delayed']+result['final']['Dead']==0
+            else:
+                assert result['atomicBatchEnqueue'] is False and result['final'] is None
             if mode=='mixed':assert result['completed']==100000
             print(f"{provider} {mode} batch={size}: {result['enqueuePerSecond']:.1f} inserted/s, {result['completionPerSecond']:.1f} completed/s",flush=True)
-            if mode=='enqueue':remove_queue(provider,queue,database)
+            if mode=='enqueue' or provider=='azurestorage':remove_queue(provider,queue,database)
             if provider=='sqlite':
                 for suffix in ('','-wal','-shm'):Path(str(database)+suffix).unlink(missing_ok=True)

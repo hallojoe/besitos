@@ -36,7 +36,10 @@ sealed class PrintCommand : ICommandHandler
 }
 ```
 
-Use `AddPostgresQueue` or `AddSqlServerQueue` to change providers.
+Use `AddPostgresQueue` or `AddSqlServerQueue` to change database providers.
+Use `AddAzureStorageQueue` for native Storage Queues.
+See [Azure Storage behavior](azure-storage.md) for its smaller messages, non-atomic batches, and instance-local receipts.
+The database guarantees below apply to SQLite, PostgreSQL, and SQL Server.
 Supabase uses the ordinary PostgreSQL provider and an Npgsql connection string.
 There is no Supabase dependency.
 

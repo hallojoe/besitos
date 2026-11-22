@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Queue.Core/Queue.Core.csproj" />
+    <ProjectReference Include="../Queue.Delivery/Queue.Delivery.csproj" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>
 </Project>

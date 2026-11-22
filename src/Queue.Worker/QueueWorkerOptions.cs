@@ -2,6 +2,7 @@ namespace Besitos.Worker;
 
 public sealed record QueueWorkerOptions
 {
+    public QueueRequirements Requirements { get; init; } = new();
     public string QueueName { get; init; } = "default";
     public int Concurrency { get; init; } = 4;
     public TimeSpan LeaseDuration { get; init; } = TimeSpan.FromSeconds(30);

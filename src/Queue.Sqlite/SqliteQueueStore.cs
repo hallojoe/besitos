@@ -6,7 +6,10 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Besitos.Sqlite;
 
 public sealed class SqliteQueueStore(string connectionString, QueueLimits? limits = null)
-    : RelationalQueueStore(new SqliteDialect(connectionString), limits);
+    : RelationalQueueStore(new SqliteDialect(connectionString), limits)
+{
+    public static QueueProviderDescriptor Descriptor => Describe(DatabaseEngine.Sqlite);
+}
 
 public static class SqliteRegistration
 {

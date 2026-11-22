@@ -5,10 +5,10 @@ public partial class RelationalQueueStore : IQueueCapabilities, IQueueStatistics
     public IQueueDeliverySource CreateDeliverySource(QueueDeliveryOptions options, TimeProvider time, Action<DeliveryEvent> observe)
         => new Besitos.Delivery.StoreDeliverySource(this, options, time, observe, error => error is System.Data.Common.DbException);
 
-    public QueueInstanceCapabilities Capabilities => new(
-        new(dialect.Engine.ToString().ToLowerInvariant(), "1.0", 1,
-            new(BatchAtomicity.Atomic, DeduplicationScope.ExistingItem, RecoveryMode.Explicit,
-                StatisticsAccuracy.Exact, true, true)), _limits, TimeSpan.FromDays(365),
+    public static QueueProviderDescriptor Describe(DatabaseEngine engine) => new(engine.ToString().ToLowerInvariant(), "1.0", 1,
+        new(BatchAtomicity.Atomic, DeduplicationScope.ExistingItem, RecoveryMode.Explicit, StatisticsAccuracy.Exact, true, true));
+
+    public QueueInstanceCapabilities Capabilities => new(Describe(dialect.Engine), _limits, TimeSpan.FromDays(365),
         TimeSpan.FromMilliseconds(50), TimeSpan.FromHours(1));
 
     public async Task<QueueStatistics> ObserveAsync(string queueName, CancellationToken cancellationToken = default)

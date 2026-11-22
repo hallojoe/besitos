@@ -7,10 +7,10 @@ public sealed partial class AzureStorageQueueStore : IQueueCapabilities, IQueueS
     public IQueueDeliverySource CreateDeliverySource(QueueDeliveryOptions options, TimeProvider time, Action<DeliveryEvent> observe)
         => new Besitos.Delivery.StoreDeliverySource(this, options, time, observe, _ => false);
 
-    public QueueInstanceCapabilities Capabilities => new(
-        new("azurestorage", "1.0", 1, new(BatchAtomicity.Partial, DeduplicationScope.None,
-            RecoveryMode.VisibilityTimeout, StatisticsAccuracy.Approximate, false, false)),
-        _limits, TimeSpan.FromDays(7), TimeSpan.FromSeconds(1), TimeSpan.FromHours(1), MaximumInitialMessageBytes);
+    public static QueueProviderDescriptor Descriptor { get; } = new("azurestorage", "1.0", 1,
+        new(BatchAtomicity.Partial, DeduplicationScope.None, RecoveryMode.VisibilityTimeout, StatisticsAccuracy.Approximate, false, false));
+
+    public QueueInstanceCapabilities Capabilities => new(Descriptor, _limits, TimeSpan.FromDays(7), TimeSpan.FromSeconds(1), TimeSpan.FromHours(1), MaximumInitialMessageBytes);
 
     public async Task<QueueStatistics> ObserveAsync(string queueName, CancellationToken cancellationToken = default)
     {

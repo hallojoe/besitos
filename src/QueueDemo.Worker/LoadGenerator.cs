@@ -1,10 +1,12 @@
 namespace Besitos.Demo.Worker;
 
-public sealed class LoadGenerator(IQueueStore store, IConfiguration configuration, IHostApplicationLifetime lifetime) : IDisposable
+public sealed class LoadGenerator(IQueueStore store, IConfiguration configuration, IHostApplicationLifetime lifetime) : IDisposable, IAsyncDisposable, IHostedService
 {
     private readonly object _gate = new();
     private CancellationTokenSource? _cancellation;
     private bool _disposed;
+    private Task _completion = Task.CompletedTask;
+    public bool CleanupIncomplete => !_completion.IsCompleted;
     private LoadStatus _status = new(false, 0, 0, "idle");
     public LoadStatus Status { get { lock (_gate) return _status; } }
     public LoadStatus Start(LoadRequest request)
@@ -21,7 +23,7 @@ public sealed class LoadGenerator(IQueueStore store, IConfiguration configuratio
             var cancellation = _cancellation;
             _status = new(true, request.Count, 0, "running");
             // Run cleanup even if cancellation arrives before the task starts.
-            _ = Task.Run(() => GenerateAsync(envelope, request.Count, cancellation), CancellationToken.None);
+            _completion = Task.Run(() => GenerateAsync(envelope, request.Count, cancellation), CancellationToken.None);
             return _status;
         }
     }
@@ -65,4 +67,13 @@ public sealed class LoadGenerator(IQueueStore store, IConfiguration configuratio
             _cancellation?.Cancel();
         }
     }
+
+    public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    public async Task StopAsync(CancellationToken cancellationToken)
+    {
+        Task completion;
+        lock (_gate) { Dispose(); completion = _completion; }
+        await completion.WaitAsync(cancellationToken);
+    }
+    public async ValueTask DisposeAsync() => await StopAsync(CancellationToken.None);
 }

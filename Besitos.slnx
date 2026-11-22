@@ -1,5 +1,7 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Queue.Administration/Queue.Administration.csproj" />
+    <Project Path="src/Queue.Console/Queue.Console.csproj" />
     <Project Path="src/Queue.AzureStorage/Queue.AzureStorage.csproj" />
     <Project Path="src/Queue.Benchmarks/Queue.Benchmarks.csproj" />
     <Project Path="src/Queue.Email/Queue.Email.csproj" />

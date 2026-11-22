@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Queue.Email/Queue.Email.csproj" />
+    <ProjectReference Include="../Queue.Console/Queue.Console.csproj" />
     <ProjectReference Include="../QueueDemo.Shared/QueueDemo.Shared.csproj" />
   </ItemGroup>
   <ItemGroup>

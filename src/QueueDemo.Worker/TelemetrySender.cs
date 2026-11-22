@@ -33,7 +33,10 @@ public sealed class TelemetrySender(IHttpClientFactory clients, IConfiguration c
                 var status = worker.Status;
                 var email = services.GetService<EmailMetrics>();
                 using var response = await client.PostAsJsonAsync("/internal/events",
-                    new TelemetryBatch(configuration["Queue:Provider"]!, status, Dropped, events, email is null ? null : new(email.Accepted, email.Connections, email.Batches)), stoppingToken);
+                    new TelemetryBatch(configuration["Queue:Provider"]!, status, Dropped, events, email is null ? null : new(email.Accepted, email.Connections, email.Batches))
+                    {
+                        Diagnostics = services.GetServices<IQueueDiagnostics>().ToDictionary(d => d.Id, d => d.Snapshot())
+                    }, stoppingToken);
                 if (!response.IsSuccessStatusCode) Interlocked.Add(ref _dropped, events.Count);
                 else if (response.StatusCode != System.Net.HttpStatusCode.NoContent)
                 {

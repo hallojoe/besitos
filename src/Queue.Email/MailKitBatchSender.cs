@@ -83,6 +83,7 @@ public static class EmailRegistration
         options.Validate();
         services.AddSingleton(options);
         services.AddSingleton<EmailMetrics>();
+        services.AddSingleton<IQueueDiagnostics, EmailDiagnostics>();
         services.AddScoped<IEmailBatchSender, MailKitBatchSender>();
         return services.AddQueueHandler<EmailBatchHandler>(EmailBatch.Command);
     }

@@ -2,6 +2,19 @@
 const $ = id => document.getElementById(id);
 let provider = 'sqlite', group = 'default', snapshots = [], events = [], displayPaused = false, cursor = null, inspected = null;
 const completed = {};
+const contributions = new Map();
+const currentGroup = () => snapshots.find(x => x.provider === provider && x.queueName === group);
+const contribution = () => contributions.get(currentGroup()?.workload);
+function refreshChoices() {
+  const choose = (element, values, selected) => {
+    if ([...element.options].map(option => option.value).join('|') !== values.join('|'))
+      element.replaceChildren(...values.map(value => { const option = text('option', value); option.value = value; return option; }));
+    element.value = values.includes(selected) ? selected : values[0] || '';
+    return element.value;
+  };
+  provider = choose($('provider'), [...new Set(snapshots.map(x => x.provider))], provider);
+  group = choose($('queue-group'), snapshots.filter(x => x.provider === provider).map(x => x.queueName), group);
+}
 let renderPending = false;
 function scheduleEvents() {
   if (renderPending) return;
@@ -18,10 +31,11 @@ async function api(path, body, method = 'POST') {
 }
 function action(fn) { return async event => { event?.preventDefault(); try { await fn(event); } catch (error) { notify(error.message, true); } }; }
 function render() {
+  refreshChoices();
   const current = snapshots.find(x => x.provider === provider && x.queueName === group);
   const ready = current?.state === 'ready';
   $('readiness').textContent = current?.state || 'not initialized'; $('readiness').className = `badge ${ready ? 'ready' : ''}`;
-  $('startup-hint').textContent = ready ? 'Store initialized. Processing starts only when requested.' : provider === 'sqlite' ? 'Start the SQLite worker in Aspire. The file is created at that point.' : 'Start this database container, then its worker, in Aspire.';
+  $('startup-hint').textContent = ready ? 'Store initialized. Processing starts only when requested.' : 'Start this store and worker group in Aspire.';
   document.querySelectorAll('.requires-ready').forEach(button => button.disabled = !ready);
   const snapshot = current?.snapshot;
   for (const name of ['ready','delayed','leased','dead']) $(name).textContent = snapshot?.stats ? snapshot.stats[name].toLocaleString() : '—';
@@ -30,22 +44,18 @@ function render() {
   const approximate = snapshot?.approximateStats;
   $('approximate-stats').hidden = !approximate;
   $('approximate-stats').textContent = approximate ? `Approximate source messages: ${approximate.source.toLocaleString()} · Poison messages: ${approximate.poison.toLocaleString()} · Includes invisible messages · Observed ${new Date(approximate.observedAt).toLocaleTimeString()}${ready ? '' : ' · stale'}` : '';
-  const administration = snapshot?.supportsAdministration ?? provider !== 'azurestorage';
+  const administration = current?.capabilities?.provider?.features?.browse ?? snapshot?.supportsAdministration ?? false;
   $('dead-refresh').disabled = !ready || !administration;
   $('dead-next').disabled = !ready || !administration || !cursor;
   $('replay').disabled = !ready || !administration || inspected?.state !== 2;
   if (!administration) $('dead-list').replaceChildren(text('p','Failed messages are retained in the poison queue. Browsing and replay are unavailable.','empty'));
-  if (provider === 'azurestorage' && !ready) $('startup-hint').textContent = 'Start Azurite, then the Azure Storage worker, in Aspire.';
   const workers = current?.workers || [];
   const pending = workers.length < (current?.expectedReplicas || 1) || workers.some(w => w.paused === current?.processingEnabled);
-  $('worker-summary').textContent = `${workers.length} / ${current?.expectedReplicas || (group === 'many-email' ? 3 : 1)} replicas connected · ${current?.concurrencyPerReplica || 1} configured slots per replica · ${workers.filter(w => !w.paused).reduce((sum,w) => sum+w.concurrency,0)} active handler slots`;
+  $('worker-summary').textContent = `${workers.length} / ${current?.expectedReplicas || 1} replicas connected · ${current?.concurrencyPerReplica || 1} configured slots per replica · ${workers.filter(w => !w.paused).reduce((sum,w) => sum+w.concurrency,0)} active handler slots`;
   $('control-state').textContent = `Requested: ${current?.processingEnabled ? 'processing' : 'paused'}${pending ? ' · waiting for replica acknowledgement' : ' · acknowledged by all replicas'}`;
-  $('open-enqueue').textContent = group === 'many-email' ? 'Generate test emails' : 'Enqueue a command';
-  $('generic-load').hidden = group === 'many-email';
-  $('email-help').hidden = group !== 'many-email';
-  $('mailpit-link').hidden = group !== 'many-email' || !$('mailpit-link').href;
-  $('email-metrics').hidden = group !== 'many-email';
-  $('email-metrics').textContent = `Live replica counters: ${current?.email?.accepted || 0} SMTP accepted emails · ${current?.email?.connections || 0} SMTP connections · ${current?.email?.batches || 0} batch attempts. Counters reset when replicas restart.`;
+  $('open-enqueue').textContent = 'Enqueue a command';
+  $('generic-load').hidden = !current?.workload;
+  for (const extension of contributions.values()) extension.render(current, ready);
   const nodes = [];
   for (const worker of workers) {
     nodes.push(text('p', `${worker.processId} · ${worker.queueName} · ${worker.concurrency} slots · ${worker.paused ? 'paused' : 'processing'}`, 'worker-process'));
@@ -63,7 +73,6 @@ function render() {
   if (load) {
     $('load-progress').max = Math.max(1,load.requested); $('load-progress').value = load.enqueued;
     $('load-state').textContent = `${load.state} · ${load.enqueued.toLocaleString()} / ${load.requested.toLocaleString()} envelopes enqueued${load.emailsRequested ? ` · ${load.emailsEnqueued} / ${load.emailsRequested} emails enqueued` : ''}`;
-    $('email-form').querySelector('button[type=submit]').disabled = !ready || load.running;
     $('load-start').disabled = !ready || load.running;
     $('load-cancel').disabled = !ready || !load.running;
   }
@@ -121,18 +130,19 @@ render();
 
 $('open-enqueue').addEventListener('click', () => {
   $('enqueue-error').textContent = '';
-  $('enqueue-title').textContent = group === 'many-email' ? 'Generate test emails' : 'Enqueue a command';
-  $('generic-enqueue').hidden = group === 'many-email';
-  $('email-form').hidden = group !== 'many-email';
+  $('enqueue-title').textContent = 'Enqueue a command';
+  $('generic-enqueue').hidden = false;
+  for (const extension of contributions.values()) extension.open(currentGroup());
   $('enqueue-dialog').showModal();
 });
 $('close-enqueue').addEventListener('click', () => $('enqueue-dialog').close());
 $('enqueue-dialog').addEventListener('close', () => $('open-enqueue').focus());
-$('email-form').addEventListener('submit', action(async () => {
-  await api('/load', {count:Number($('email-count').value), batchSize:Number($('email-batch-size').value)});
-  $('enqueue-dialog').close(); notify('Test email generation started. Start processing to send emails.');
-}));
 fetch('/api/config').then(r => r.json()).then(config => {
   if (config.mailpitUrl) { const url = new URL(config.mailpitUrl); if (['http:', 'https:'].includes(url.protocol)) $('mailpit-link').href = url.href; }
+  const modules = [];
+  if (config.emailWorkload) modules.push('/email.js');
+  if (config.benchmarks) modules.push('/benchmarks.js');
+  for (const src of modules) { const script = document.createElement('script'); script.src = src; document.head.append(script); }
+  $('benchmarks-tab').hidden = !config.benchmarks;
   render();
 }).catch(() => {});

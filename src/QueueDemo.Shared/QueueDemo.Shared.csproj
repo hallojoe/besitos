@@ -9,6 +9,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Queue.Core/Queue.Core.csproj" />
+    <ProjectReference Include="../Queue.Administration/Queue.Administration.csproj" />
     <ProjectReference Include="../Queue.Worker/Queue.Worker.csproj" />
   </ItemGroup>
 </Project>

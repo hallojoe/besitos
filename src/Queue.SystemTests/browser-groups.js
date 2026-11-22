@@ -17,7 +17,24 @@ async page => {
   await page.locator('#email-batch-size').fill('4');
   await page.getByRole('button',{name:'Generate test emails',exact:true}).last().click();
   await page.waitForFunction(() => document.getElementById('load-state').textContent.includes('12 / 12 emails'));
+  await page.locator('#benchmarks-tab').click();
+  await page.waitForFunction(() => !document.getElementById('benchmark-status').textContent.includes('Loading'));
+  const runs = await page.evaluate(async () => (await fetch('/api/benchmarks')).json());
+  if (!runs.length) throw new Error('No saved benchmarks.');
+  if (await page.locator('#operations-view').isVisible()) throw new Error('Operations did not hide.');
+  await page.locator('#bench-batch').selectOption('1');
+  if (!await page.locator('#benchmark-history details').count()) throw new Error('Historical runs missing.');
+  await page.locator('#bench-provider').selectOption('azurestorage');
+  if (!(await page.locator('#benchmark-history').textContent()).includes('Azurite')) throw new Error('Emulator label missing.');
+  await page.setViewportSize({width:390,height:844});
+  if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)) throw new Error('Mobile benchmark overflow.');
+  await page.screenshot({path:'.artifacts/benchmark-mobile.png',fullPage:true});
+  await page.setViewportSize({width:1440,height:1000});
+  await page.locator('#bench-provider').selectOption('');
+  await page.locator('#bench-batch').selectOption('100');
+  await page.screenshot({path:'.artifacts/benchmark-desktop.png',fullPage:true});
+  await page.locator('#operations-tab').click();
   await page.screenshot({path:'.artifacts/email-operations.png',fullPage:true});
   if (errors.length) throw new Error(errors.join('\n'));
-  return {modal:true,keyboard:true,groups:true,emailGenerator:true};
+  return {modal:true,keyboard:true,groups:true,emailGenerator:true,benchmarks:true,mobile:true};
 }

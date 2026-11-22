@@ -4,4 +4,7 @@
     <ProjectReference Include="../Queue.Email/Queue.Email.csproj" />
     <ProjectReference Include="../QueueDemo.Shared/QueueDemo.Shared.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="../../.github/measurements/**/*.json" Link="measurements/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

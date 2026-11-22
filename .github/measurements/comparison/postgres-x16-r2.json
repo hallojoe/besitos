@@ -1,0 +1,147 @@
+{
+  "provider": "postgres",
+  "databaseVersion": "18.1 (Debian 18.1-1.pgdg13+2)",
+  "storageSdkVersion": null,
+  "serviceApiVersion": null,
+  "emulator": null,
+  "atomicBatchEnqueue": true,
+  "queue": "batchmeasure-4ad2d860ba584dd2a86b8381a510a39b",
+  "mode": "benchmark",
+  "count": 1000,
+  "concurrency": 16,
+  "batchSize": 100,
+  "enqueued": 1000,
+  "enqueuePerSecond": 4803.276987692083,
+  "payloadBytes": 128,
+  "runtime": ".NET 10.0.14",
+  "os": "Omarchy",
+  "architecture": "X64",
+  "logicalProcessors": 8,
+  "enqueueSeconds": 0.2081912,
+  "consumeSeconds": 0.3544702,
+  "completionPerSecond": 2821.1116195381164,
+  "completed": 1000,
+  "storageErrors": 0,
+  "peakWorkingSetBytes": 86073344,
+  "managedHeapBytes": 2250904,
+  "cpuSeconds": 0.765866,
+  "batchLatencyHistogram": [
+    {
+      "upperMs": "0.1",
+      "count": 0
+    },
+    {
+      "upperMs": "0.25",
+      "count": 0
+    },
+    {
+      "upperMs": "0.5",
+      "count": 0
+    },
+    {
+      "upperMs": "1",
+      "count": 0
+    },
+    {
+      "upperMs": "2",
+      "count": 0
+    },
+    {
+      "upperMs": "5",
+      "count": 0
+    },
+    {
+      "upperMs": "10",
+      "count": 4
+    },
+    {
+      "upperMs": "25",
+      "count": 4
+    },
+    {
+      "upperMs": "50",
+      "count": 1
+    },
+    {
+      "upperMs": "100",
+      "count": 1
+    },
+    {
+      "upperMs": "500",
+      "count": 0
+    },
+    {
+      "upperMs": ">500",
+      "count": 0
+    }
+  ],
+  "claimLatencyHistogram": [
+    {
+      "upperMs": "0.1",
+      "count": 0
+    },
+    {
+      "upperMs": "0.25",
+      "count": 0
+    },
+    {
+      "upperMs": "0.5",
+      "count": 1
+    },
+    {
+      "upperMs": "1",
+      "count": 12
+    },
+    {
+      "upperMs": "2",
+      "count": 65
+    },
+    {
+      "upperMs": "5",
+      "count": 914
+    },
+    {
+      "upperMs": "10",
+      "count": 8
+    },
+    {
+      "upperMs": "25",
+      "count": 12
+    },
+    {
+      "upperMs": "50",
+      "count": 4
+    },
+    {
+      "upperMs": "100",
+      "count": 0
+    },
+    {
+      "upperMs": "500",
+      "count": 0
+    },
+    {
+      "upperMs": ">500",
+      "count": 0
+    }
+  ],
+  "final": {
+    "Ready": 0,
+    "Delayed": 0,
+    "Leased": 0,
+    "Dead": 0,
+    "OldestAvailableAt": null,
+    "ObservedAt": "2026-11-10T20:06:07.259+00:00"
+  },
+  "approximateFinal": null,
+  "validation": "Exact final queue statistics.",
+  "note": "No handler delay. Storage-only benchmark. Database memory, lock waits, and browser memory require separate observation.",
+  "exitCode": 0,
+  "comparison": {
+    "cohort": "local-20261110T200523Z",
+    "environmentId": "4fb441aeada6c70a",
+    "build": "Release",
+    "repetition": 2,
+    "capturedAt": "2026-11-10T20:06:07.297470+00:00"
+  }
+}

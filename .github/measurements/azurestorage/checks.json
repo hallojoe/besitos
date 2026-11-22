@@ -1,0 +1,6 @@
+{
+  "http": true,
+  "restart": true,
+  "poison": true,
+  "browser": true
+}

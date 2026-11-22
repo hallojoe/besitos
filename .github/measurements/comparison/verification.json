@@ -1,0 +1,122 @@
+{
+  "date": "2026-11-10",
+  "build": {
+    "solution": "Besitos.slnx",
+    "passed": true,
+    "warnings": 0,
+    "errors": 0
+  },
+  "regressions": {
+    "readCommitted": {
+      "passed": 120,
+      "failed": 0
+    },
+    "readCommittedSnapshot": {
+      "passed": 120,
+      "failed": 0
+    }
+  },
+  "finalFocusedTests": {
+    "passed": 14,
+    "failed": 0
+  },
+  "initialFailure": "The first full run hit the existing SQL Server overlapping-producer/consumer timeout. Both subsequent full isolation-mode runs passed. No relational provider code was changed for this feature.",
+  "emailWorkflows": [
+    {
+      "provider": "sqlite",
+      "replicas": 3,
+      "concurrencyPerReplica": 2,
+      "acceptedEmails": 300,
+      "smtpConnections": 30,
+      "isolatedGroups": true,
+      "proxySafeControls": true,
+      "restart": true,
+      "consoleOutage": true,
+      "cancellation": true
+    },
+    {
+      "provider": "postgres",
+      "replicas": 3,
+      "concurrencyPerReplica": 2,
+      "acceptedEmails": 300,
+      "smtpConnections": 30,
+      "isolatedGroups": true,
+      "proxySafeControls": true,
+      "restart": true,
+      "consoleOutage": true,
+      "cancellation": true
+    },
+    {
+      "provider": "sqlserver",
+      "replicas": 3,
+      "concurrencyPerReplica": 2,
+      "acceptedEmails": 300,
+      "smtpConnections": 30,
+      "isolatedGroups": true,
+      "proxySafeControls": true,
+      "restart": true,
+      "consoleOutage": true,
+      "cancellation": true
+    },
+    {
+      "provider": "azurestorage",
+      "replicas": 3,
+      "concurrencyPerReplica": 2,
+      "acceptedEmails": 300,
+      "smtpConnections": 30,
+      "isolatedGroups": true,
+      "proxySafeControls": true,
+      "restart": true,
+      "consoleOutage": true,
+      "cancellation": true
+    }
+  ],
+  "aspire": {
+    "sqlite": {
+      "default": 1,
+      "many-email": 3
+    },
+    "postgres": {
+      "default": 1,
+      "many-email": 3
+    },
+    "sqlserver": {
+      "default": 1,
+      "many-email": 3
+    },
+    "azurestorage": {
+      "default": 1,
+      "many-email": 3
+    },
+    "mailpit": "docker.io/axllent/mailpit:v1.31.2"
+  },
+  "aspireRuntime": "Three SQLite email replicas became healthy and reported paused state with one slot each. Every email replica has a Mailpit readiness dependency.",
+  "benchmarks": {
+    "measuredRuns": 36,
+    "excludedWarmups": 12,
+    "count": 1000,
+    "payloadBytes": 128,
+    "batchSize": 100,
+    "concurrency": [
+      1,
+      4,
+      16
+    ],
+    "repetitions": 3,
+    "allPassed": true,
+    "emulatorMeasurementsLabeled": true
+  },
+  "azureRegression": "All four modes, all four batch sizes, concurrency 1/4/16 smoke cases, HTTP controls, restart, poison transfer, and browser checks passed.",
+  "browser": {
+    "modal": true,
+    "keyboard": true,
+    "groupSelection": true,
+    "emailGeneration": true,
+    "benchmarkMedians": true,
+    "failedRunsExcluded": true,
+    "historicalResultsSeparate": true,
+    "mobile": true
+  },
+  "processRegression": "Independent processes, database restarts, repeated crash recovery, and telemetry outages passed.",
+  "cleanup": "Disposable provider and Mailpit containers removed; validation AppHost stopped."
+}

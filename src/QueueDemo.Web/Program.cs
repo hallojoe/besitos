@@ -9,6 +9,7 @@ var key = DemoSecurity.RequireKey(builder.Configuration);
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<GroupLoadCoordinator>();
+builder.Services.AddSingleton<BenchmarkCatalog>();
 builder.Services.AddSingleton<EventHub>();
 builder.Services.AddSingleton<ProviderRegistry>();
 builder.Services.AddHostedService<SnapshotPoller>();
@@ -54,6 +55,9 @@ app.MapGet("/events", async (HttpContext context, EventHub events, ProviderRegis
     catch (OperationCanceledException) when (token.IsCancellationRequested) { }
 });
 app.MapGet("/api/config", (IConfiguration configuration) => new { mailpitUrl = configuration["Mailpit:Url"] });
+app.MapGet("/api/benchmarks", (BenchmarkCatalog catalog) => Results.Ok(catalog.Runs));
+app.MapGet("/api/benchmarks/{id}/raw", (string id, BenchmarkCatalog catalog) =>
+    catalog.Raw(id) is { } raw ? Results.Text(raw, "application/json") : Results.NotFound());
 foreach (var prefix in new[] { "/api/{provider}", "/api/{provider}/groups/{group}" })
 {
     var routes = app.MapGroup(prefix);

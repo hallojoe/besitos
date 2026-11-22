@@ -113,6 +113,7 @@ try:
             subprocess.run(['playwright-cli','-s=besitos-system','open',url],cwd=root,check=True,stdout=subprocess.DEVNULL)
             try:
                 subprocess.run(['playwright-cli','-s=besitos-system','run-code','--filename=src/Queue.SystemTests/browser-smoke.js'],cwd=root,check=True)
+                subprocess.run(['playwright-cli','-s=besitos-system','run-code','--filename=src/Queue.SystemTests/browser-benchmarks.js'],cwd=root,check=True)
             finally:subprocess.run(['playwright-cli','-s=besitos-system','close'],cwd=root,stdout=subprocess.DEVNULL)
 finally:
     for process in reversed(processes):

@@ -47,6 +47,14 @@ public sealed class AzureStorageTests
     }
 
     [AzureFact]
+    public async Task DeclaredOptionalContractsConform()
+    {
+        await using var fixture = new Fixture();
+        await fixture.Store.InitializeAsync();
+        await ProviderConformance.VerifyAsync(QueueStoreInstance.FromStore(fixture.Store), fixture.Queue);
+    }
+
+    [AzureFact]
     public async Task InitializationIsConcurrentAndLogicalQueuesAreIndependent()
     {
         await using var f = new Fixture();

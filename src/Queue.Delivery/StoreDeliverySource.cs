@@ -16,6 +16,7 @@ public sealed class StoreDeliverySource(IQueueStore store, QueueDeliveryOptions 
     private Task _recovery = Task.CompletedTask;
     private bool _started;
     private bool _disposed;
+    private Task? _stopped;
 
     public Task StartAsync(CancellationToken cancellationToken = default)
     {
@@ -23,6 +24,7 @@ public sealed class StoreDeliverySource(IQueueStore store, QueueDeliveryOptions 
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
             cancellationToken.ThrowIfCancellationRequested();
+            if (_stopped is not null) throw new InvalidOperationException("A stopped delivery source cannot restart.");
             if (_started) return Task.CompletedTask;
             _started = true;
             _recovery = RecoverAsync();
@@ -32,6 +34,7 @@ public sealed class StoreDeliverySource(IQueueStore store, QueueDeliveryOptions 
 
     public async Task<IQueueDelivery?> AcquireAsync(string consumer, CancellationToken cancellationToken)
     {
+        _stop.Token.ThrowIfCancellationRequested();
         var item = await store.ClaimAsync(options.QueueName, options.OwnershipDuration, cancellationToken);
         if (item is null)
         {
@@ -45,10 +48,15 @@ public sealed class StoreDeliverySource(IQueueStore store, QueueDeliveryOptions 
             safeSettlementRetry ?? (error => error is DbException));
     }
 
-    public async Task StopAsync(CancellationToken cancellationToken = default)
+    public Task StopAsync(CancellationToken cancellationToken = default)
+    {
+        lock (_lifecycle) return (_stopped ??= StopCoreAsync()).WaitAsync(cancellationToken);
+    }
+
+    private async Task StopCoreAsync()
     {
         await _stop.CancelAsync();
-        await _recovery.WaitAsync(cancellationToken);
+        await _recovery;
     }
 
     private async Task RecoverAsync()
@@ -148,7 +156,6 @@ public sealed class StoreDeliverySource(IQueueStore store, QueueDeliveryOptions 
                     await _stop.CancelAsync();
                     return _settled;
                 }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
                 catch (Exception error)
                 {
                     var safe = _safeRetry(error);
@@ -181,7 +188,8 @@ public sealed class StoreDeliverySource(IQueueStore store, QueueDeliveryOptions 
             catch (OperationCanceledException) when (_stop.IsCancellationRequested) { return; }
             catch (Exception error) { _observe(new(_consumer, Message, "renewal-uncertain", error.GetType().Name)); }
             _observe(new(_consumer, Message, "ownership-lost"));
-            await _lost.CancelAsync();
+            try { await _lost.CancelAsync(); }
+            catch (Exception error) { _observe(new(_consumer, Message, "cancellation-error", error.GetType().Name)); }
         }
 
         public async ValueTask DisposeAsync()

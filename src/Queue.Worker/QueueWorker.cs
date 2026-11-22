@@ -37,11 +37,17 @@ public sealed class QueueWorker : IHostedService, IDisposable, IAsyncDisposable
 
     public QueueWorker(IQueueStore store, IServiceScopeFactory scopes, QueueWorkerOptions options,
         IEnumerable<HandlerRegistration> handlers, IQueueTelemetry telemetry, TimeProvider time, ILogger<QueueWorker> logger)
-        : this((settings, clock, observer) => store is IQueueDeliveryFactory factory
-            ? factory.CreateDeliverySource(settings, clock, observer)
-            : new StoreDeliverySource(store, settings, clock, observer), scopes, options, handlers, telemetry, time, logger)
+        : this((settings, clock, observer) => CreateLegacySource(store, options, settings, clock, observer),
+            scopes, options, handlers, telemetry, time, logger) { }
+
+    private static IQueueDeliverySource CreateLegacySource(IQueueStore store, QueueWorkerOptions options,
+        QueueDeliveryOptions settings, TimeProvider clock, Action<DeliveryEvent> observer)
     {
         if (store is IQueueCapabilities capabilities) capabilities.Capabilities.Validate(options.Requirements, options.LeaseDuration);
+        else if (options.Requirements != new QueueRequirements())
+            throw new InvalidOperationException("This legacy store does not declare the required capabilities.");
+        return store is IQueueDeliveryFactory factory ? factory.CreateDeliverySource(settings, clock, observer)
+            : new StoreDeliverySource(store, settings, clock, observer);
     }
 
     public QueueWorker(Func<QueueDeliveryOptions, TimeProvider, Action<DeliveryEvent>, IQueueDeliverySource> createSource,
@@ -124,8 +130,11 @@ public sealed class QueueWorker : IHostedService, IDisposable, IAsyncDisposable
                 if (_paused) { await DelayAsync(TimeSpan.FromMilliseconds(150), _stopClaims.Token); continue; }
                 var delivery = await _source.AcquireAsync(loop, _stopClaims.Token);
                 if (delivery is null) continue;
-                Claims.Add(1);
-                await using (delivery) await ExecuteAsync(loop, delivery);
+                await using (delivery)
+                {
+                    try { Claims.Add(1); } catch { /* Metric observers cannot prevent execution. */ }
+                    await ExecuteAsync(loop, delivery);
+                }
             }
             catch (OperationCanceledException) when (_stopClaims.IsCancellationRequested) { break; }
             catch (Exception exception)
@@ -205,6 +214,7 @@ public sealed class QueueWorker : IHostedService, IDisposable, IAsyncDisposable
         HandlerResult handler, long started, CancellationToken cancellationToken)
     {
         var decision = handler.Failure is { } failure ? _failurePolicy.Decide(delivery.Message, failure) : null;
+        if (decision is not null && item.AttemptCount >= item.MaxAttempts) decision = decision with { Kind = FailureKind.Permanent };
         // Only settlement repeats. Handler effects cannot run again here.
         for (var attempt = 0; attempt < 3; attempt++)
         {
@@ -225,7 +235,8 @@ public sealed class QueueWorker : IHostedService, IDisposable, IAsyncDisposable
                 SettlementState.OwnershipLost => "ownership-lost",
                 _ => decision is null ? "completed" : decision.Kind == FailureKind.Permanent ? "dead" : "retry"
             };
-            Outcomes.Add(1, new KeyValuePair<string, object?>("outcome", type));
+            try { Outcomes.Add(1, new KeyValuePair<string, object?>("outcome", type)); }
+            catch { /* Metric observers cannot change settlement. */ }
             Emit(loop, item, type, _time.GetElapsedTime(started).TotalMilliseconds, handler.Error);
             break;
         }
@@ -259,8 +270,11 @@ public sealed class QueueWorker : IHostedService, IDisposable, IAsyncDisposable
         {
             try { if (_start is not null) await _start; }
             catch { /* Startup is observed by its caller. */ }
-            await _source.StopAsync();
+            Exception? stopError = null;
+            try { await _source.StopAsync(); }
+            catch (Exception error) { stopError = error; }
             await _running;
+            if (stopError is not null) throw new AggregateException(stopError);
         }
         finally
         {

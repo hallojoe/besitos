@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><IsTestProject>true</IsTestProject><IsPackable>false</IsPackable></PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../Queue.ExtensionFixture/Queue.ExtensionFixture.csproj" />
     <ProjectReference Include="../Queue.Sqlite/Queue.Sqlite.csproj" />
     <ProjectReference Include="../Queue.AzureStorage/Queue.AzureStorage.csproj" />
     <ProjectReference Include="../Queue.Postgres/Queue.Postgres.csproj" />

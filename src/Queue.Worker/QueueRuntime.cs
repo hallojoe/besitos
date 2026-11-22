@@ -44,7 +44,7 @@ public sealed class QueueRuntime : IHostedService, IAsyncDisposable
     public IReadOnlyDictionary<string, QueueWorker> Workers { get { lock (_gate) return new Dictionary<string, QueueWorker>(_workers); } }
     public QueueStoreInstance GetStore(string name) { lock (_gate) return _instances[name]; }
     public Task CleanupCompletion => _cleanup;
-    public bool CleanupIncomplete => !_cleanup.IsCompleted || _workers.Values.Any(worker => worker.CleanupIncomplete);
+    public bool CleanupIncomplete { get { lock (_gate) return !_cleanup.IsCompleted || _workers.Values.Any(worker => worker.CleanupIncomplete); } }
 
     private void ValidateConfiguration()
     {
@@ -58,6 +58,8 @@ public sealed class QueueRuntime : IHostedService, IAsyncDisposable
             }
         }
         Names(_providers.Select(p => p.Descriptor.Id));
+        if (_providers.Any(p => string.IsNullOrWhiteSpace(p.Descriptor.Version) || p.Descriptor.ConfigurationSchemaVersion < 1))
+            throw new ArgumentException("Provider version and configuration schema version are required.");
         Names(_stores.Select(s => s.Name));
         Names(_groups.Select(g => g.Name));
         Names(_handlers.Select(h => h.Command));
@@ -114,11 +116,12 @@ public sealed class QueueRuntime : IHostedService, IAsyncDisposable
                 await worker.StartAsync(cancellationToken);
             }
         }
-        catch
+        catch (Exception startupError)
         {
             // Cleanup remains owned even if one resource cannot stop immediately.
             lock (_gate) _stopping = true;
-            await StopWorkersAsync();
+            try { await StopWorkersAsync(); }
+            catch (Exception cleanupError) { throw new AggregateException(startupError, cleanupError); }
             throw;
         }
     }

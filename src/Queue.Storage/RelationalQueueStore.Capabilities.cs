@@ -1,7 +1,10 @@
 namespace Besitos.Storage;
 
-public partial class RelationalQueueStore : IQueueCapabilities, IQueueStatistics, IQueueSubmission, IQueueFailureSettlement
+public partial class RelationalQueueStore : IQueueCapabilities, IQueueStatistics, IQueueSubmission, IQueueFailureSettlement, IQueueDeliveryFactory
 {
+    public IQueueDeliverySource CreateDeliverySource(QueueDeliveryOptions options, TimeProvider time, Action<DeliveryEvent> observe)
+        => new Besitos.Delivery.StoreDeliverySource(this, options, time, observe, error => error is System.Data.Common.DbException);
+
     public QueueInstanceCapabilities Capabilities => new(
         new(dialect.Engine.ToString().ToLowerInvariant(), "1.0", 1,
             new(BatchAtomicity.Atomic, DeduplicationScope.ExistingItem, RecoveryMode.Explicit,

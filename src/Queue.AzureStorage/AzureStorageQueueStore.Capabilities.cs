@@ -2,8 +2,11 @@ using System.Text.Json;
 
 namespace Besitos.AzureStorage;
 
-public sealed partial class AzureStorageQueueStore : IQueueCapabilities, IQueueStatistics, IQueueSubmission, IQueueFailureSettlement
+public sealed partial class AzureStorageQueueStore : IQueueCapabilities, IQueueStatistics, IQueueSubmission, IQueueFailureSettlement, IQueueDeliveryFactory
 {
+    public IQueueDeliverySource CreateDeliverySource(QueueDeliveryOptions options, TimeProvider time, Action<DeliveryEvent> observe)
+        => new Besitos.Delivery.StoreDeliverySource(this, options, time, observe, _ => false);
+
     public QueueInstanceCapabilities Capabilities => new(
         new("azurestorage", "1.0", 1, new(BatchAtomicity.Partial, DeduplicationScope.None,
             RecoveryMode.VisibilityTimeout, StatisticsAccuracy.Approximate, false, false)),

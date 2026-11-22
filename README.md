@@ -27,7 +27,7 @@ await queue.EnqueueAsync(new Envelope(
 Commands keep their original text, media type, and metadata.
 Delivery is **at least once**. Handlers must tolerate duplicate execution.
 
-[Azure Storage behavior](.github/docs/azure-storage.md) · [Start the demo](.github/docs/quickstart.md) · [Use the library](.github/docs/library.md) · [Read the test results](.github/docs/verification.md)
+[Configure providers and groups](.github/docs/provider-extensions.md) · [Azure Storage behavior](.github/docs/azure-storage.md) · [Start the demo](.github/docs/quickstart.md) · [Use the library](.github/docs/library.md) · [Read the test results](.github/docs/verification.md)
 
 ![Besitos queue console](.github/assets/console.png)
 

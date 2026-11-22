@@ -1,6 +1,31 @@
 # Besitos architecture refactoring plan
 
-Status: Proposed. Implementation has not started.
+Status: Implemented on .NET 10. Local verification passed. Manual provider release gates remain pending.
+
+## Implementation record
+
+| Phase | Result |
+| --- | --- |
+| 0 | Compatibility inventory recorded. Baseline: 67 local tests passed; 11 Azure tests skipped. |
+| 1 | Descriptors, effective capabilities, optional statistics, submission results, and settlement outcomes added. |
+| 2 | Existing providers use owned delivery sessions. Worker execution no longer handles database exceptions. |
+| 3 | Explicit provider registry, independent stores, group configuration, and named demo composition added. |
+| 4 | Group failure policies supply retry timing. Providers retain mutation and uncertainty handling. |
+| 5 | Administration and console packages extracted. Workloads and versioned diagnostics are optional. |
+| 6 | Lifecycle ownership, task joining, provider conformance, external consumer, and compatibility checks added. |
+
+`Queue.Delivery` shares the existing providers' polling adapters.
+Legacy interfaces and assembly type forwarders remain available.
+The new delivery contract excludes ownership tokens. The legacy handler bridge preserves existing `QueueItem` arguments.
+
+Final local evidence: solution build passed with zero warnings and errors; 84 tests passed and 12 Azure tests skipped.
+JavaScript syntax and whitespace checks passed.
+PostgreSQL, SQL Server, Azure service, process, browser, and benchmark verification was not triggered.
+The existing SQL Server overlap timeout remains separate. No test was weakened to hide it.
+
+See [registration and migration](.github/docs/provider-extensions.md),
+[compatibility boundaries](.github/docs/refactoring-compatibility.md), and
+[verification evidence](.github/docs/refactoring-verification.md).
 
 ## Objective
 

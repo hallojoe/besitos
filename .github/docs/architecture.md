@@ -12,16 +12,20 @@ The root README presents the product and links to technical guides.
 | `Queue.Postgres` | PostgreSQL schema, locking, registration |
 | `Queue.SqlServer` | SQL Server schema, locking, registration |
 | `Queue.AzureStorage` | Native Storage Queues, visibility receipts, and poison transfers |
-| `Queue.Worker` | Scoped handlers, bounded loops, renewal, recovery, shutdown |
-| `QueueDemo.Shared` | HTTP security and cross-process message contracts |
-| `QueueDemo.Worker` | Explicit store initialization, controls, safe handlers, telemetry |
-| `QueueDemo.Web` | Local console, worker proxy, shared snapshots, SSE |
+| `Queue.Delivery` | Shared legacy-store delivery sessions, polling, renewal, and recovery |
+| `Queue.Worker` | Named runtime composition, scoped handlers, deadlines, policies, and shutdown |
+| `Queue.Administration` | Optional HTTP contracts, worker controls, snapshots, proxy, and SSE |
+| `Queue.Console` | Optional embedded presentation assets |
+| `QueueDemo.Shared` | Demo telemetry setup and compatibility type forwarders |
+| `QueueDemo.Worker` | Provider registration, sample handlers, workload validation, and telemetry |
+| `QueueDemo.Web` | Local host composition, optional email generation, and saved benchmarks |
 | `QueueDemo.AppHost` | Manually started databases and workers |
-| `Queue.Tests` | Shared engine contracts, worker faults, event-buffer tests |
+| `Queue.Tests` | Provider conformance, worker faults, lifecycle, protocol, and event-buffer tests |
+| `Queue.ExtensionFixture` | External-provider consumer compiled without drivers or administration |
 | `Queue.SystemTests` | Process, container, browser, and load checks |
 | `Queue.Benchmarks` | Bounded storage measurements |
 
-`Queue.AzureStorage` implements the worker interfaces directly, without the relational base class.
+`Queue.AzureStorage` implements delivery and optional provider contracts without the relational base class.
 Its [native limitations](azure-storage.md) are explicit.
 
 `Queue.Storage` prevents relational provider drift in validation, mapping, and mutation outcomes.
@@ -42,6 +46,7 @@ Worker handler invocation and acknowledgement retries use separate private metho
 Lease renewal surrounds both operations. Acknowledgement retries cannot call a handler.
 `ExecutionDeadline` arbitrates handler completion against an optional timeout through the injected time provider.
 Expiry stops renewal and requests cancellation. It never releases a slot occupied by a running handler.
+See [provider extensions and migration](provider-extensions.md) for registration and lifecycle contracts.
 See [improvement priorities](improvement-priorities.md) for the ordered feature backlog.
 
 ## Cross-process events

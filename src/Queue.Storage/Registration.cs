@@ -9,6 +9,9 @@ public static class Registration
         services.AddSingleton<IQueueStore>(store);
         services.AddSingleton<IQueueAdministration>(store);
         services.AddSingleton<IQueueSchema>(store);
+        if (store is IQueueCapabilities capabilities) services.AddSingleton(capabilities);
+        if (store is IQueueStatistics statistics) services.AddSingleton(statistics);
+        if (store is IQueueSubmission submission) services.AddSingleton(submission);
         return services;
     }
 }

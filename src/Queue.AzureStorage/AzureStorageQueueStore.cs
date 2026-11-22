@@ -14,7 +14,7 @@ public sealed record ApproximateQueueStats(long Source, long Poison, DateTimeOff
 /// Native Storage Queues: non-atomic batches, no enqueue deduplication, and instance-local lease receipts.
 /// Failed sends can have succeeded remotely. Do not automatically retry a batch.
 /// </summary>
-public sealed class AzureStorageQueueStore : IQueueStore, IQueueSchema
+public sealed partial class AzureStorageQueueStore : IQueueStore, IQueueSchema
 {
     public const string ServiceApiVersion = "2023-11-03";
     public const int MaximumInitialMessageBytes = 40 * 1024;
@@ -157,14 +157,20 @@ public sealed class AzureStorageQueueStore : IQueueStore, IQueueSchema
     }
 
     public Task<MutationOutcome> FailAsync(QueueItem item, FailureKind kind, string error, CancellationToken cancellationToken = default)
+        => FailAsync(item, new CommandFailureDecision(kind, RetryPolicy.Delay(item.AttemptCount)), error, cancellationToken);
+
+    public Task<MutationOutcome> FailAsync(QueueItem item, CommandFailureDecision decision, string error, CancellationToken cancellationToken = default)
     {
+        var kind = decision.Kind;
+        if (decision.RetryDelay < TimeSpan.Zero || decision.RetryDelay > TimeSpan.FromDays(7))
+            throw new ArgumentOutOfRangeException(nameof(decision));
         ArgumentNullException.ThrowIfNull(item);
         if (!Enum.IsDefined(kind)) throw new ArgumentOutOfRangeException(nameof(kind));
         if (item.LeaseToken is not { } token) return Task.FromResult(MutationOutcome.OwnershipLost);
         return MutateAsync(item.Id, token, async lease =>
         {
             var terminal = lease.Body.Terminal || kind == FailureKind.Permanent || lease.Body.Attempts >= lease.Body.Envelope.MaxAttempts;
-            var delay = terminal ? TimeSpan.FromSeconds(30) : RoundSeconds(RetryPolicy.Delay(lease.Body.Attempts));
+            var delay = terminal ? TimeSpan.FromSeconds(30) : RoundSeconds(decision.RetryDelay);
             var body = lease.Body with
             {
                 Terminal = terminal,

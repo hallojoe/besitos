@@ -157,20 +157,23 @@ public sealed partial class AzureStorageQueueStore : IQueueStore, IQueueSchema
     }
 
     public Task<MutationOutcome> FailAsync(QueueItem item, FailureKind kind, string error, CancellationToken cancellationToken = default)
-        => FailAsync(item, new CommandFailureDecision(kind, RetryPolicy.Delay(item.AttemptCount)), error, cancellationToken);
+        => FailCoreAsync(item, kind, error, null, cancellationToken);
 
     public Task<MutationOutcome> FailAsync(QueueItem item, CommandFailureDecision decision, string error, CancellationToken cancellationToken = default)
+        => FailCoreAsync(item, decision.Kind, error, decision.RetryDelay, cancellationToken);
+
+    private Task<MutationOutcome> FailCoreAsync(QueueItem item, FailureKind kind, string error,
+        TimeSpan? retryDelay, CancellationToken cancellationToken)
     {
-        var kind = decision.Kind;
-        if (decision.RetryDelay < TimeSpan.Zero || decision.RetryDelay > TimeSpan.FromDays(7))
-            throw new ArgumentOutOfRangeException(nameof(decision));
+        if (retryDelay is { } requestedDelay && (requestedDelay < TimeSpan.Zero || requestedDelay > TimeSpan.FromDays(7)))
+            throw new ArgumentOutOfRangeException(nameof(retryDelay));
         ArgumentNullException.ThrowIfNull(item);
         if (!Enum.IsDefined(kind)) throw new ArgumentOutOfRangeException(nameof(kind));
         if (item.LeaseToken is not { } token) return Task.FromResult(MutationOutcome.OwnershipLost);
         return MutateAsync(item.Id, token, async lease =>
         {
             var terminal = lease.Body.Terminal || kind == FailureKind.Permanent || lease.Body.Attempts >= lease.Body.Envelope.MaxAttempts;
-            var delay = terminal ? TimeSpan.FromSeconds(30) : RoundSeconds(decision.RetryDelay);
+            var delay = terminal ? TimeSpan.FromSeconds(30) : RoundSeconds(retryDelay ?? RetryPolicy.Delay(lease.Body.Attempts));
             var body = lease.Body with
             {
                 Terminal = terminal,

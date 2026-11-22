@@ -69,19 +69,22 @@ public partial class RelationalQueueStore(SqlDialect dialect, QueueLimits? limit
             [("token", dialect.Id(token))], cancellationToken);
 
     public Task<MutationOutcome> FailAsync(QueueItem item, FailureKind kind, string error, CancellationToken cancellationToken = default)
-        => FailAsync(item, new CommandFailureDecision(kind, RetryPolicy.Delay(item.AttemptCount)), error, cancellationToken);
+        => FailCoreAsync(item, kind, error, null, cancellationToken);
 
     public Task<MutationOutcome> FailAsync(QueueItem item, CommandFailureDecision decision, string error, CancellationToken cancellationToken = default)
+        => FailCoreAsync(item, decision.Kind, error, decision.RetryDelay, cancellationToken);
+
+    private Task<MutationOutcome> FailCoreAsync(QueueItem item, FailureKind kind, string error,
+        TimeSpan? retryDelay, CancellationToken cancellationToken)
     {
-        var kind = decision.Kind;
-        if (decision.RetryDelay < TimeSpan.Zero || decision.RetryDelay > TimeSpan.FromDays(365))
-            throw new ArgumentOutOfRangeException(nameof(decision));
+        if (retryDelay is { } delay && (delay < TimeSpan.Zero || delay > TimeSpan.FromDays(365)))
+            throw new ArgumentOutOfRangeException(nameof(retryDelay));
         if (!Enum.IsDefined(kind)) throw new ArgumentOutOfRangeException(nameof(kind));
         if (item.LeaseToken is null || item.AttemptCount < 1) throw new ArgumentException("A claimed item is required.");
         return MutateAsync($"UPDATE {dialect.Table} SET state=CASE WHEN @permanent=1 OR attempt_count>=max_attempts THEN 2 ELSE 0 END, " +
             $"available_at={dialect.AddMilliseconds("@delay")},lease_token=NULL,lease_until=NULL,last_error=@error WHERE {dialect.LeasePredicate}",
             item.Id, [("token", dialect.Id(item.LeaseToken.Value)), ("permanent", kind == FailureKind.Permanent ? 1 : 0),
-            ("delay", (long)decision.RetryDelay.TotalMilliseconds), ("error", EnvelopeValidation.SanitizeError(error, _limits.ErrorCharacters))], cancellationToken);
+            ("delay", (long)(retryDelay ?? RetryPolicy.Delay(item.AttemptCount)).TotalMilliseconds), ("error", EnvelopeValidation.SanitizeError(error, _limits.ErrorCharacters))], cancellationToken);
     }
 
     public Task<MutationOutcome> RenewLeaseAsync(Guid id, Guid token, TimeSpan duration, CancellationToken cancellationToken = default)

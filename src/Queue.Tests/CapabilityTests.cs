@@ -6,6 +6,19 @@ namespace Besitos.Tests;
 public sealed class CapabilityTests
 {
     [Fact]
+    public async Task LegacyFailureValidationPrecedesRetryCalculation()
+    {
+        var item = new QueueMessage(Guid.NewGuid(), "default", "test.command", "", "text/plain", null,
+            DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, 0, 5, null).ToHandlerItem();
+        var azure = new AzureStorageQueueStore("UseDevelopmentStorage=true");
+        Assert.Equal(MutationOutcome.OwnershipLost, await azure.FailAsync(item, FailureKind.Retryable, "safe"));
+        Assert.Throws<ArgumentNullException>(() => { _ = azure.FailAsync(null!, FailureKind.Retryable, "safe"); });
+        var relational = new Besitos.Sqlite.SqliteQueueStore("Data Source=unused");
+        Assert.Throws<ArgumentException>(() => { _ = relational.FailAsync(item, FailureKind.Retryable, "safe"); });
+        Assert.Throws<ArgumentOutOfRangeException>(() => { _ = relational.FailAsync(item, (FailureKind)99, "safe"); });
+    }
+
+    [Fact]
     public async Task RelationalResultsPreserveIdsAndRejectBeforeWriting()
     {
         using var fixture = await ProviderContractTests.CreateAsync("sqlite");

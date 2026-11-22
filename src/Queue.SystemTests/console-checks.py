@@ -89,7 +89,9 @@ try:
         print('HTTP authentication, origin protection, SSE replay/reset, open-stream shutdown, heartbeat recovery PASS',flush=True)
         def snapshot():
             req=urllib.request.Request(f'http://127.0.0.1:{worker_port}/snapshot',headers={'X-Besitos-Key':key})
-            with urllib.request.urlopen(req,timeout=5) as response:return json.loads(response.read())
+            with urllib.request.urlopen(req,timeout=5) as response: result=json.loads(response.read())
+            result['load']=next(p for p in request('/api/providers') if p['provider']=='sqlite' and p['queueName']=='default')['load']
+            return result
         headers={'X-Besitos-Request':'console'}
         request('/api/sqlite/load',{'count':250},headers)
         wait(lambda:not snapshot()['load']['running'])

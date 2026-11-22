@@ -1,5 +1,7 @@
+using Microsoft.Extensions.Configuration;
 using System.Security.Cryptography;
 using System.Text.Json;
+using Aspire.Hosting.Azure;
 
 namespace Besitos.Demo.AppHost;
 
@@ -15,13 +17,15 @@ internal static class QueueResources
             .WithEnvironment("Demo__Key", key);
 
     public static IResourceBuilder<ProjectResource> AddSqliteWorker(this IDistributedApplicationBuilder builder,
-        IResourceBuilder<ProjectResource> console, IResourceBuilder<ParameterResource> key)
+        IResourceBuilder<ProjectResource> console, IResourceBuilder<ParameterResource> key, IResourceBuilder<MailPitContainerResource> mailpit)
     {
         var directory = builder.Configuration["SqliteDirectory"] ?? Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "../../.data"));
         directory = Path.GetFullPath(directory, builder.AppHostDirectory);
         builder.AddQueueSqliteDatabase(directory);
         var connection = new System.Data.Common.DbConnectionStringBuilder { ["Data Source"] = Path.Combine(directory, "queue.db") };
-        return builder.AddQueueWorker("sqlite", console, key)
+        builder.AddQueueWorker("sqlite", console, key, "many-email", mailpit)
+            .WithEnvironment("ConnectionStrings__queue", connection.ConnectionString);
+        return builder.AddQueueWorker("sqlite", console, key, "default", mailpit)
             .WithEnvironment("ConnectionStrings__queue", connection.ConnectionString);
     }
 
@@ -36,10 +40,11 @@ internal static class QueueResources
     }
 
     public static IResourceBuilder<ProjectResource> AddPostgresWorker(this IDistributedApplicationBuilder builder,
-        IResourceBuilder<ProjectResource> console, IResourceBuilder<ParameterResource> key)
+        IResourceBuilder<ProjectResource> console, IResourceBuilder<ParameterResource> key, IResourceBuilder<MailPitContainerResource> mailpit)
     {
         var database = builder.AddQueuePostgresDatabase();
-        return builder.AddQueueWorker("postgres", console, key).WithReference(database, "queue").WaitFor(database);
+        builder.AddQueueWorker("postgres", console, key, "many-email", mailpit).WithReference(database, "queue").WaitFor(database);
+        return builder.AddQueueWorker("postgres", console, key, "default", mailpit).WithReference(database, "queue").WaitFor(database);
     }
 
     private static IResourceBuilder<PostgresDatabaseResource> AddQueuePostgresDatabase(this IDistributedApplicationBuilder builder)
@@ -82,10 +87,11 @@ internal static class QueueResources
     }
 
     public static IResourceBuilder<ProjectResource> AddSqlServerWorker(this IDistributedApplicationBuilder builder,
-        IResourceBuilder<ProjectResource> console, IResourceBuilder<ParameterResource> key)
+        IResourceBuilder<ProjectResource> console, IResourceBuilder<ParameterResource> key, IResourceBuilder<MailPitContainerResource> mailpit)
     {
         var database = builder.AddQueueSqlServerDatabase();
-        return builder.AddQueueWorker("sqlserver", console, key).WithReference(database, "queue").WaitFor(database);
+        builder.AddQueueWorker("sqlserver", console, key, "many-email", mailpit).WithReference(database, "queue").WaitFor(database);
+        return builder.AddQueueWorker("sqlserver", console, key, "default", mailpit).WithReference(database, "queue").WaitFor(database);
     }
 
     private static IResourceBuilder<SqlServerDatabaseResource> AddQueueSqlServerDatabase(this IDistributedApplicationBuilder builder)
@@ -101,19 +107,48 @@ internal static class QueueResources
         return server.AddDatabase("sqlserver-queue", "besitos");
     }
 
-    private static IResourceBuilder<ProjectResource> AddQueueWorker(this IDistributedApplicationBuilder builder, string provider,
-        IResourceBuilder<ProjectResource> console, IResourceBuilder<ParameterResource> key)
+    public static IResourceBuilder<ProjectResource> AddAzureStorageWorker(this IDistributedApplicationBuilder builder,
+        IResourceBuilder<ProjectResource> console, IResourceBuilder<ParameterResource> key, IResourceBuilder<MailPitContainerResource> mailpit)
     {
-        var worker = builder.AddProject<Projects.QueueDemo_Worker>($"{provider}-worker")
+        var queues = builder.AddQueueAzureStorage();
+        builder.AddQueueWorker("azurestorage", console, key, "many-email", mailpit).WithReference(queues, "queue").WaitFor(queues);
+        return builder.AddQueueWorker("azurestorage", console, key, "default", mailpit).WithReference(queues, "queue").WaitFor(queues);
+    }
+
+    private static IResourceBuilder<AzureQueueStorageResource> AddQueueAzureStorage(this IDistributedApplicationBuilder builder)
+        => builder.AddAzureStorage("azurite")
+            .RunAsEmulator(emulator => emulator.WithImageTag("3.35.0")
+                .WithDataVolume("besitos-azurite-data").WithExplicitStart())
+            .AddQueues("azurestorage-queue");
+
+    private static IResourceBuilder<ProjectResource> AddQueueWorker(this IDistributedApplicationBuilder builder, string provider,
+        IResourceBuilder<ProjectResource> console, IResourceBuilder<ParameterResource> key, string group,
+        IResourceBuilder<MailPitContainerResource> mailpit)
+    {
+        var replicas = builder.Configuration.GetValue($"Groups:{group}:Replicas", group == "default" ? 1 : 3);
+        var concurrency = builder.Configuration.GetValue($"Groups:{group}:Concurrency", 1);
+        if (replicas is < 1 or > 32 || concurrency is < 1 or > 128)
+            throw new ArgumentException("Use 1–32 replicas and 1–128 handler slots per replica.");
+        var name = group == "default" ? $"{provider}-worker" : $"{provider}-{group}-worker";
+        var worker = builder.AddProject<Projects.QueueDemo_Worker>(name)
+            .WithReplicas(replicas)
             .WithHttpEndpoint(name: "http")
             .WithHttpHealthCheck("/health")
             .WithExplicitStart()
             .WithEnvironment("Demo__Key", key)
             .WithEnvironment("Queue__Provider", provider)
+            .WithEnvironment("Queue__Name", group)
+            .WithEnvironment("Worker__Concurrency", concurrency.ToString(System.Globalization.CultureInfo.InvariantCulture))
             .WithEnvironment("Worker__AutoProcess", "false")
             .WithEnvironment("Demo__WebUrl", console.GetEndpoint("http"));
-        // Endpoint references allocate addresses. Neither resource waits for the other.
-        console.WithEnvironment($"Providers__{provider}", worker.GetEndpoint("http"));
+        if (group == "many-email")
+            worker.WithEnvironment("Smtp__Host", mailpit.GetEndpoint("smtp").Property(EndpointProperty.Host))
+                .WithEnvironment("Smtp__Port", mailpit.GetEndpoint("smtp").Property(EndpointProperty.Port))
+                .WithEnvironment("Smtp__Security", "None")
+                .WithReference(mailpit).WaitFor(mailpit);
+        console.WithEnvironment($"WorkerGroups__{provider}__{group}__Endpoint", worker.GetEndpoint("http"))
+            .WithEnvironment($"WorkerGroups__{provider}__{group}__Replicas", replicas.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            .WithEnvironment($"WorkerGroups__{provider}__{group}__Concurrency", concurrency.ToString(System.Globalization.CultureInfo.InvariantCulture));
         return worker;
     }
 }

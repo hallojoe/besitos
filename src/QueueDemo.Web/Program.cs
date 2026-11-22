@@ -7,6 +7,8 @@ builder.AddDemoOpenTelemetry();
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 512 * 1024);
 var key = DemoSecurity.RequireKey(builder.Configuration);
 builder.Services.AddHttpClient();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<GroupLoadCoordinator>();
 builder.Services.AddSingleton<EventHub>();
 builder.Services.AddSingleton<ProviderRegistry>();
 builder.Services.AddHostedService<SnapshotPoller>();
@@ -18,9 +20,9 @@ app.MapGet("/health", () => Results.Ok(new { status = "ready" }));
 app.MapGet("/api/providers", (ProviderRegistry registry) => registry.Snapshots());
 app.MapPost("/internal/events", (TelemetryBatch batch, ProviderRegistry registry, EventHub events) =>
 {
-    registry.Register(batch);
-    foreach (var value in batch.Events) events.Publish("queue", new { provider = batch.Provider, value });
-    return Results.NoContent();
+    var directive = registry.Register(batch);
+    foreach (var value in batch.Events) events.Publish("queue", new { provider = batch.Provider, queueName = batch.Worker.QueueName, value });
+    return Results.Ok(directive);
 });
 app.MapGet("/events", async (HttpContext context, EventHub events, ProviderRegistry registry, IHostApplicationLifetime lifetime) =>
 {
@@ -51,33 +53,42 @@ app.MapGet("/events", async (HttpContext context, EventHub events, ProviderRegis
     }
     catch (OperationCanceledException) when (token.IsCancellationRequested) { }
 });
-app.MapPost("/api/{provider}/enqueue", (string provider, Envelope envelope, ProviderRegistry registry, CancellationToken token) =>
-    ForwardAsync(provider, "/enqueue", HttpMethod.Post, envelope, registry, token));
-app.MapPost("/api/{provider}/control/{action}", (string provider, string action, ProviderRegistry registry, CancellationToken token) =>
+app.MapGet("/api/config", (IConfiguration configuration) => new { mailpitUrl = configuration["Mailpit:Url"] });
+foreach (var prefix in new[] { "/api/{provider}", "/api/{provider}/groups/{group}" })
 {
-    if (action is not ("start" or "pause")) throw new ArgumentException("Unknown control.");
-    return ForwardAsync(provider, $"/control/{action}", HttpMethod.Post, null, registry, token);
-});
-app.MapGet("/api/{provider}/items", (string provider, HttpContext context, ProviderRegistry registry, CancellationToken token) =>
-    ForwardAsync(provider, "/items" + context.Request.QueryString, HttpMethod.Get, null, registry, token));
-app.MapGet("/api/{provider}/items/{id:guid}", (string provider, Guid id, ProviderRegistry registry, CancellationToken token) =>
-    ForwardAsync(provider, $"/items/{id:D}", HttpMethod.Get, null, registry, token));
-app.MapPost("/api/{provider}/items/{id:guid}/replay", (string provider, Guid id, ProviderRegistry registry, CancellationToken token) =>
-    ForwardAsync(provider, $"/items/{id:D}/replay", HttpMethod.Post, null, registry, token));
-app.MapPost("/api/{provider}/load", (string provider, LoadRequest request, ProviderRegistry registry, CancellationToken token) =>
-    ForwardAsync(provider, "/load", HttpMethod.Post, request, registry, token));
-app.MapPost("/api/{provider}/load/cancel", (string provider, ProviderRegistry registry, CancellationToken token) =>
-    ForwardAsync(provider, "/load/cancel", HttpMethod.Post, null, registry, token));
+    var routes = app.MapGroup(prefix);
+    routes.MapPost("/enqueue", (string provider, HttpContext context, Envelope envelope, ProviderRegistry registry, CancellationToken token) =>
+        ForwardAsync(provider, Group(context), "/enqueue", HttpMethod.Post, envelope, registry, token));
+    routes.MapPost("/control/{action}", (string provider, string action, HttpContext context, ProviderRegistry registry) =>
+        Results.Accepted(value: registry.Control(provider, Group(context), action)));
+    routes.MapGet("/items", (string provider, HttpContext context, ProviderRegistry registry, CancellationToken token) =>
+        ForwardAsync(provider, Group(context), "/items" + context.Request.QueryString, HttpMethod.Get, null, registry, token));
+    routes.MapGet("/items/{id:guid}", (string provider, Guid id, HttpContext context, ProviderRegistry registry, CancellationToken token) =>
+        ForwardAsync(provider, Group(context), $"/items/{id:D}", HttpMethod.Get, null, registry, token));
+    routes.MapPost("/items/{id:guid}/replay", (string provider, Guid id, HttpContext context, ProviderRegistry registry, CancellationToken token) =>
+        ForwardAsync(provider, Group(context), $"/items/{id:D}/replay", HttpMethod.Post, null, registry, token));
+    routes.MapPost("/load", (string provider, HttpContext context, LoadRequest request, GroupLoadCoordinator load, ProviderRegistry registry) =>
+    {
+        var group = Group(context);
+        if (!registry.Snapshots().Any(x => x.Provider == provider && x.QueueName == group && x.State == "ready"))
+            return Results.Json(new { error = "Start this worker group in Aspire first." }, statusCode: 503);
+        return Results.Accepted(value: load.Start(provider, group, request));
+    });
+    routes.MapPost("/load/cancel", (string provider, HttpContext context, GroupLoadCoordinator load) =>
+    { load.Cancel(provider, Group(context)); return Results.Accepted(value: new { state = "cancellation requested" }); });
+}
 await app.RunAsync();
 
-static async Task<IResult> ForwardAsync(string provider, string path, HttpMethod method, object? body, ProviderRegistry registry, CancellationToken token)
+static string Group(HttpContext context) => context.Request.RouteValues["group"]?.ToString() ?? "default";
+
+static async Task<IResult> ForwardAsync(string provider, string group, string path, HttpMethod method, object? body, ProviderRegistry registry, CancellationToken token)
 {
-    if (!ProviderRegistry.Names.Contains(provider)) return Results.NotFound();
-    if (!registry.Snapshots().Any(x => x.Provider == provider && x.State == "ready"))
+    if (!ProviderRegistry.Names.Contains(provider) || !ProviderRegistry.Groups.Contains(group)) return Results.NotFound();
+    if (!registry.Snapshots().Any(x => x.Provider == provider && x.QueueName == group && x.State == "ready"))
         return Results.Json(new { error = "Start this database and worker in Aspire first." }, statusCode: 503);
     try
     {
-        using var client = registry.Client(provider);
+        using var client = registry.Client(provider, group);
         using var request = new HttpRequestMessage(method, path);
         if (body is not null) request.Content = JsonContent.Create(body);
         using var response = await client.SendAsync(request, token);

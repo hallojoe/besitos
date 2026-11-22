@@ -29,6 +29,10 @@ jobs:
           CONTAINER_ENGINE: docker
           BESITOS_KEEP_TEST_CONTAINERS: '1'
         run: python3 src/Queue.SystemTests/provider-matrix.py
+      - name: Azure Storage console and 1,000-item benchmark matrix
+        run: python3 src/Queue.SystemTests/azure-storage-checks.py
+      - name: Queue groups and Mailpit email workflows
+        run: python3 src/Queue.SystemTests/email-group-checks.py
       - name: Independent processes, restart, crashes, and telemetry outage
         run: python3 src/Queue.SystemTests/process-checks.py
       - name: HTTP protection, SSE reconnection, and shutdown
@@ -50,3 +54,6 @@ jobs:
             .artifacts/*.trx
             .artifacts/benchmark-*.json
             .artifacts/batch-measurements/*.json
+            .artifacts/azurestorage-smoke/
+            .artifacts/email-group-results.json
+            .artifacts/email-*.log

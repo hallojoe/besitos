@@ -93,7 +93,10 @@ Successful completion deletes the row. Enqueue deduplication therefore ends at c
 For durable side effects, use an application-level operation ID and a business uniqueness constraint.
 Pass that ID as the external service's idempotency key when supported.
 
-Operations use their own connections and do not enlist in ambient transactions.
+Use the optional [handler idempotency helpers](idempotent-handlers.md) for stable operation keys and transactional duplicate protection.
+SQLite, PostgreSQL, and SQL Server executors use the business database. Existing handlers incur no additional database calls.
+
+Queue storage operations use their own connections and do not enlist in ambient transactions.
 This API is not a transactional outbox for your business transaction.
 Coordinate business consistency separately.
 

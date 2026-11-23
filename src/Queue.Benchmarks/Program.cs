@@ -13,10 +13,13 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
 using Npgsql;
 
+if (args.FirstOrDefault() == "--operations") return await OperationBenchmark.RunAsync(args[1..]);
+
 if (args.Contains("--help", StringComparer.Ordinal))
 {
     Console.WriteLine("Usage: --provider sqlite|postgres|sqlserver|azurestorage --count 1000 --concurrency 4 [--allow-100k] [--queue name] [--mode benchmark|enqueue|consume|mixed] [--batch-size 1|100|500|1000]");
     Console.WriteLine("Set BESITOS_CONNECTION for a server database or Azure Storage. Large runs require --allow-100k.");
+    Console.WriteLine("Use --operations --help for optional handler protection comparisons.");
     return 0;
 }
 

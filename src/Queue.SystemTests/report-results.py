@@ -10,13 +10,14 @@ artifacts=root/'.artifacts'
 output=root/'.github/measurements'
 output.mkdir(exist_ok=True)
 rows=[]
-for provider,label in [('sqlite','SQLite'),('postgres','PostgreSQL'),('sqlserver','SQL Server')]:
+for provider,label in [('sqlite','SQLite'),('postgres','PostgreSQL'),('sqlserver','SQL Server'),('azurestorage','Azure Storage (Azurite)')]:
     for concurrency in (1,4,16):
         path=artifacts/f'benchmark-{provider}-x{concurrency}.json'
         if not path.exists() or not path.stat().st_size:continue
         data=json.loads(path.read_text())
         assert data['completed']==100000 and data['storageErrors']==0
-        assert sum(data['final'][key] for key in ['Ready','Delayed','Leased','Dead'])==0
+        if provider!='azurestorage':assert sum(data['final'][key] for key in ['Ready','Delayed','Leased','Dead'])==0
+        else:assert data['final'] is None and data['atomicBatchEnqueue'] is False
         target=sum(bucket['count'] for bucket in data['claimLatencyHistogram'])*.95
         cumulative=0
         p95=''
@@ -27,8 +28,8 @@ for provider,label in [('sqlite','SQLite'),('postgres','PostgreSQL'),('sqlserver
         rows.append(f"| {label} | {concurrency} | {data['enqueueSeconds']:.1f} | {data['consumeSeconds']:.1f} | {data['completionPerSecond']:.1f} | {p95} | {data['peakWorkingSetBytes']/1048576:.1f} |")
         shutil.copy2(path,output/path.name)
 body='\n\n| Provider | X | Enqueue seconds | Consume seconds | Completions/s | Claim p95 bucket, ms | Peak process MiB |\n| --- | ---: | ---: | ---: | ---: | ---: | ---: |\n'+'\n'.join(rows)+'\n\n'
-body+=('All nine measurements are complete.' if len(rows)==9 else f'{len(rows)} of nine measurements are complete.')+' Each completed run accounted for all 100,000 items.\n'
-body+='All reported final ready, delayed, leased, and dead counts were zero. No terminal storage errors were reported.\n'
+body+=('All twelve measurements are complete.' if len(rows)==12 else f'{len(rows)} of twelve measurements are complete.')+' Each completed run accounted for all 100,000 items.\n'
+body+='Relational final counts were zero. Azure validation uses unique acknowledged completions; its counts are approximate. No terminal storage errors were reported.\n'
 body+='Latency buckets include the final empty polls. Bucket bounds are not exact percentiles.\n'
 body+='See the [raw measurement files](../measurements/) for versions, histograms, CPU time, and final counts.\n\n'
 body+='SQLite permits one writer. Additional consumers did not improve throughput in these runs.\n'
@@ -50,7 +51,7 @@ if samples.exists():
             if not match:continue
             units={'B':1,'kB':1000,'KB':1000,'MB':1000**2,'GB':1000**3,'KiB':1024,'MiB':1024**2,'GiB':1024**3}
             size=float(match[1])*units[match[2]]
-            provider='postgres' if '-pg-' in name else 'sqlserver'
+            provider='postgres' if '-pg-' in name else 'azurestorage' if '-azurite-' in name else 'sqlserver'
             peaks[provider]=max(peaks.get(provider,0),size)
     summary['sampledPeakContainerMemoryBytes']=peaks
     for provider,size in sorted(peaks.items()):

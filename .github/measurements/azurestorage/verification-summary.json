@@ -1,0 +1,45 @@
+{
+  "date": "2026-11-10",
+  "build": {
+    "warnings": 0,
+    "errors": 0
+  },
+  "providerRuns": {
+    "readCommitted": {
+      "passed": 106,
+      "failed": 0,
+      "azurePassed": 12,
+      "failures": []
+    },
+    "readCommittedSnapshot": {
+      "passed": 105,
+      "failed": 1,
+      "azurePassed": 12,
+      "failures": [
+        {
+          "test": "Besitos.Tests.BatchContractTests.OverlappingProducersAndConsumersKeepOneCopy(provider: \"sqlserver\")",
+          "message": "Microsoft.Data.SqlClient.SqlException : Execution Timeout Expired.  The timeout period elapsed prior to completion of the operation or the server is not responding."
+        }
+      ]
+    }
+  },
+  "benchmarkCases": 15,
+  "benchmarkMessagesPerCase": 1000,
+  "browser": true,
+  "http": true,
+  "aspire": true,
+  "largeWorkloadRun": false,
+  "baselineRuns": {
+    "readCommitted": {
+      "passed": 94,
+      "failed": 0
+    },
+    "readCommittedSnapshot": {
+      "passed": 94,
+      "failed": 0
+    },
+    "repeated": true
+  },
+  "sqlTimeoutCause": "Unresolved; unchanged baseline passed both isolation modes twice.",
+  "existingConsoleRegression": true
+}

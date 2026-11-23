@@ -23,7 +23,10 @@ public static class WorkerRegistration
         services.AddSingleton(options);
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<IQueueTelemetry, NullTelemetry>();
-        services.AddSingleton<QueueWorker>();
+        services.AddSingleton(provider => new QueueWorker(provider.GetRequiredService<IQueueStore>(),
+            provider.GetRequiredService<IServiceScopeFactory>(), options,
+            provider.GetServices<HandlerRegistration>(), provider.GetRequiredService<IQueueTelemetry>(),
+            provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<QueueWorker>>()));
         services.AddSingleton<IHostedService>(provider => provider.GetRequiredService<QueueWorker>());
         return services;
     }

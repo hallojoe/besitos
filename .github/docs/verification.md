@@ -1,7 +1,24 @@
 # Verification
 
+Azure Storage validation is recorded separately in [Azure measurements](azure-storage-measurements.md).
+
 Verification date: 2026-10-30.
 All engine checks use actual databases. Fault doubles cover worker error handling only.
+
+The later [batch insertion measurements](batch-measurements.md) extend these original single-item results.
+
+## Refactoring and execution deadlines
+
+The storage and worker refactor preserved the existing 38 local tests and both 76-test provider runs.
+The subsequent optional deadline feature increased coverage to 48 local tests and 90 tests per provider run.
+Both final provider runs passed, with SQL Server READ_COMMITTED_SNAPSHOT disabled, then enabled.
+The full solution built with zero warnings and zero errors.
+Concurrent schema initialization also passed on all three engines.
+
+Deadline checks cover late results, cancellation, blocked handlers, asynchronous disposal, shutdown, metrics, and pending acknowledgements.
+Fake time controls expiry. Real-engine cases verify cancellation and retained leases across all providers.
+Existing 100,000-item measurements were not rerun for this change.
+See [improvement priorities](improvement-priorities.md) for completed changes and remaining work.
 
 ## Reproduce
 
@@ -29,17 +46,29 @@ It tests SQL Server with READ_COMMITTED_SNAPSHOT disabled, then enabled.
 The process checks restart those test databases and kill only worker processes they created.
 The browser check requires `playwright-cli` and its Chromium browser.
 
-The GitHub workflow runs the engine, process, HTTP, and SSE checks.
-It includes an explicit workflow-dispatch option for the large workload matrix.
+The **Verify queue behavior** workflow runs on pushes and pull requests.
+It builds the solution and runs tests without external services.
+It includes SQLite tests and starts no containers.
+
+Run **Full system verification** manually from GitHub Actions when engine and process checks are needed.
+Select the branch, then choose **Run workflow**.
+This workflow starts disposable containers and runs provider, Azure Storage, email, process, HTTP, and SSE checks.
+The large workload and batch workload inputs remain optional and default to disabled.
+To trigger the same checks from the command line:
+
+```bash
+gh workflow run system-tests.yml --ref develop
+```
+
 Browser checks are available locally through `BESITOS_BROWSER=1`.
 
 Retained credentials live only in ignored `.artifacts/test-engines.json`, with owner-only permissions.
 Never upload that file. Run `cleanup-engines.py` after retained-container checks.
 
-## Final functional results
+## Original functional results
 
 The full solution built with zero warnings and zero errors.
-The final suite passed 46 tests with SQL Server READ_COMMITTED_SNAPSHOT disabled.
+The original suite passed 46 tests with SQL Server READ_COMMITTED_SNAPSHOT disabled.
 It passed the same 46 tests with that setting enabled.
 Eight independent initializer processes also passed against each fresh engine schema.
 Formatting, Python syntax, and JavaScript syntax checks passed.
@@ -165,3 +194,23 @@ The tests do not establish exactly-once external effects or a throughput SLA.
 They do not certify every operating system, database configuration, proxy, or failure mode.
 The SQL Server container was tested on Linux x86-64 only.
 No public dashboard deployment or production authorization system was tested.
+
+## Queue groups, email, and benchmark console verification
+
+The 2026-11-10 validation built the complete solution with zero warnings and errors.
+Both SQL Server isolation modes passed all 120 tests. The final focused suite passed 14 tests.
+The first full run hit the existing overlapping-producer/consumer timeout. Both full reruns passed.
+This change does not repair that intermittent relational test failure.
+
+All four providers passed email group isolation, replica restart, console outage, and cancellation checks.
+Each provider delivered 300 test emails through 30 SMTP connections. Three email replicas used two slots each.
+Aspire showed one default replica and three email replicas per provider, with Mailpit readiness dependencies.
+Three Aspire-managed SQLite email replicas also became healthy and reported their configured concurrency.
+
+Browser checks passed modal visibility, keyboard controls, group selection, email generation, and mobile layouts.
+Saved benchmark medians matched all three repetitions across four providers and three concurrency settings.
+Synthetic failed runs and historical runs stayed outside matched comparison charts.
+Existing process, restart, telemetry outage, Azure, HTTP protection, and SSE checks also passed.
+
+See the [36 measured runs](../measurements/comparison/README.md) and [verification summary](../measurements/comparison/verification.json).
+Disposable test containers were removed after validation.

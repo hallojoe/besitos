@@ -1,0 +1,133 @@
+{
+  "provider": "sqlite",
+  "databaseVersion": "3.53.3",
+  "queue": "batchmeasure-06652096dc7b4d298cd5e57cf76e78b8",
+  "mode": "enqueue",
+  "count": 100000,
+  "concurrency": 4,
+  "batchSize": 1000,
+  "enqueued": 100000,
+  "enqueuePerSecond": 25501.454870751106,
+  "payloadBytes": 128,
+  "runtime": ".NET 10.0.14",
+  "os": "Omarchy",
+  "architecture": "X64",
+  "logicalProcessors": 8,
+  "enqueueSeconds": 3.9213449,
+  "consumeSeconds": 0,
+  "completionPerSecond": 0,
+  "completed": 0,
+  "storageErrors": 0,
+  "peakWorkingSetBytes": 77062144,
+  "managedHeapBytes": 5663120,
+  "cpuSeconds": 3.91974,
+  "batchLatencyHistogram": [
+    {
+      "upperMs": "0.1",
+      "count": 0
+    },
+    {
+      "upperMs": "0.25",
+      "count": 0
+    },
+    {
+      "upperMs": "0.5",
+      "count": 0
+    },
+    {
+      "upperMs": "1",
+      "count": 0
+    },
+    {
+      "upperMs": "2",
+      "count": 0
+    },
+    {
+      "upperMs": "5",
+      "count": 0
+    },
+    {
+      "upperMs": "10",
+      "count": 0
+    },
+    {
+      "upperMs": "25",
+      "count": 7
+    },
+    {
+      "upperMs": "50",
+      "count": 74
+    },
+    {
+      "upperMs": "100",
+      "count": 19
+    },
+    {
+      "upperMs": "500",
+      "count": 0
+    },
+    {
+      "upperMs": "\u003E500",
+      "count": 0
+    }
+  ],
+  "claimLatencyHistogram": [
+    {
+      "upperMs": "0.1",
+      "count": 0
+    },
+    {
+      "upperMs": "0.25",
+      "count": 0
+    },
+    {
+      "upperMs": "0.5",
+      "count": 0
+    },
+    {
+      "upperMs": "1",
+      "count": 0
+    },
+    {
+      "upperMs": "2",
+      "count": 0
+    },
+    {
+      "upperMs": "5",
+      "count": 0
+    },
+    {
+      "upperMs": "10",
+      "count": 0
+    },
+    {
+      "upperMs": "25",
+      "count": 0
+    },
+    {
+      "upperMs": "50",
+      "count": 0
+    },
+    {
+      "upperMs": "100",
+      "count": 0
+    },
+    {
+      "upperMs": "500",
+      "count": 0
+    },
+    {
+      "upperMs": "\u003E500",
+      "count": 0
+    }
+  ],
+  "final": {
+    "Ready": 100000,
+    "Delayed": 0,
+    "Leased": 0,
+    "Dead": 0,
+    "OldestAvailableAt": "2026-10-30T20:43:39.308+00:00",
+    "ObservedAt": "2026-10-30T20:43:43.185+00:00"
+  },
+  "note": "No handler delay. Storage-only benchmark. Database memory, lock waits, and browser memory require separate observation."
+}

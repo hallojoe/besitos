@@ -1,14 +1,12 @@
-using System.Data;
 using System.Data.Common;
-using System.Security.Cryptography;
-using System.Text.Json;
 
 namespace Besitos.Storage;
 
 /// <summary>Opens one connection per operation. No connection remains open during handler execution.</summary>
-public class RelationalQueueStore(SqlDialect dialect, QueueLimits? limits = null) : IQueueStore, IQueueAdministration, IQueueSchema
+public partial class RelationalQueueStore(SqlDialect dialect, QueueLimits? limits = null) : IQueueStore, IQueueAdministration, IQueueSchema
 {
     private readonly QueueLimits _limits = ValidateLimits(limits ?? new());
+    private readonly QueueCommandFactory _commands = new(dialect);
     private static QueueLimits ValidateLimits(QueueLimits limits) { limits.Validate(); return limits; }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -19,7 +17,7 @@ public class RelationalQueueStore(SqlDialect dialect, QueueLimits? limits = null
             if (dialect.MigrationLockSql.Length > 0)
                 await NonQueryAsync(connection, dialect.MigrationLockSql, [], cancellationToken, transaction);
             await NonQueryAsync(connection, dialect.SchemaSql, [], cancellationToken, transaction);
-            await using var command = CreateCommand(connection, $"SELECT MAX(version) FROM {dialect.VersionTable}", [], transaction);
+            await using var command = _commands.Create(connection, $"SELECT MAX(version) FROM {dialect.VersionTable}", [], transaction);
             var version = Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken));
             if (version != 1) throw new InvalidOperationException($"Unsupported queue schema version: {version}.");
             await transaction.CommitAsync(cancellationToken);
@@ -31,7 +29,7 @@ public class RelationalQueueStore(SqlDialect dialect, QueueLimits? limits = null
     {
         EnvelopeValidation.Validate(envelope, _limits);
         var id = envelope.Id ?? Guid.NewGuid();
-        var hash = Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(envelope with { Id = null })));
+        var hash = EnvelopeFingerprint.Compute(envelope);
         return ExecuteAsync(async connection =>
         {
             var sql = $"INSERT INTO {dialect.Table} (id,queue_name,command,payload,payload_media_type,metadata,state,created_at,available_at,attempt_count,max_attempts,envelope_hash) " +
@@ -45,7 +43,7 @@ public class RelationalQueueStore(SqlDialect dialect, QueueLimits? limits = null
             }
             catch (DbException exception) when (dialect.IsDuplicate(exception))
             {
-                await using var command = CreateCommand(connection, $"SELECT envelope_hash FROM {dialect.Table} WHERE id=@id", [("id", dialect.Id(id))]);
+                await using var command = _commands.Create(connection, $"SELECT envelope_hash FROM {dialect.Table} WHERE id=@id", [("id", dialect.Id(id))]);
                 var existing = await command.ExecuteScalarAsync(cancellationToken);
                 if (!Equals(existing, hash)) throw new InvalidOperationException("The ID already exists with a different envelope.");
             }
@@ -59,7 +57,7 @@ public class RelationalQueueStore(SqlDialect dialect, QueueLimits? limits = null
         EnvelopeValidation.Lease(leaseDuration);
         return ExecuteAsync(async connection =>
         {
-            await using var command = CreateCommand(connection, dialect.ClaimSql,
+            await using var command = _commands.Create(connection, dialect.ClaimSql,
                 [("queue", queueName), ("token", dialect.Id(Guid.NewGuid())), ("lease", (long)leaseDuration.TotalMilliseconds)]);
             await using var reader = await command.ExecuteReaderAsync(cancellationToken);
             return await reader.ReadAsync(cancellationToken) ? ReadItem(reader) : null;
@@ -71,13 +69,22 @@ public class RelationalQueueStore(SqlDialect dialect, QueueLimits? limits = null
             [("token", dialect.Id(token))], cancellationToken);
 
     public Task<MutationOutcome> FailAsync(QueueItem item, FailureKind kind, string error, CancellationToken cancellationToken = default)
+        => FailCoreAsync(item, kind, error, null, cancellationToken);
+
+    public Task<MutationOutcome> FailAsync(QueueItem item, CommandFailureDecision decision, string error, CancellationToken cancellationToken = default)
+        => FailCoreAsync(item, decision.Kind, error, decision.RetryDelay, cancellationToken);
+
+    private Task<MutationOutcome> FailCoreAsync(QueueItem item, FailureKind kind, string error,
+        TimeSpan? retryDelay, CancellationToken cancellationToken)
     {
+        if (retryDelay is { } delay && (delay < TimeSpan.Zero || delay > TimeSpan.FromDays(365)))
+            throw new ArgumentOutOfRangeException(nameof(retryDelay));
         if (!Enum.IsDefined(kind)) throw new ArgumentOutOfRangeException(nameof(kind));
         if (item.LeaseToken is null || item.AttemptCount < 1) throw new ArgumentException("A claimed item is required.");
         return MutateAsync($"UPDATE {dialect.Table} SET state=CASE WHEN @permanent=1 OR attempt_count>=max_attempts THEN 2 ELSE 0 END, " +
             $"available_at={dialect.AddMilliseconds("@delay")},lease_token=NULL,lease_until=NULL,last_error=@error WHERE {dialect.LeasePredicate}",
             item.Id, [("token", dialect.Id(item.LeaseToken.Value)), ("permanent", kind == FailureKind.Permanent ? 1 : 0),
-            ("delay", (long)RetryPolicy.Delay(item.AttemptCount).TotalMilliseconds), ("error", EnvelopeValidation.SanitizeError(error, _limits.ErrorCharacters))], cancellationToken);
+            ("delay", (long)(retryDelay ?? RetryPolicy.Delay(item.AttemptCount)).TotalMilliseconds), ("error", EnvelopeValidation.SanitizeError(error, _limits.ErrorCharacters))], cancellationToken);
     }
 
     public Task<MutationOutcome> RenewLeaseAsync(Guid id, Guid token, TimeSpan duration, CancellationToken cancellationToken = default)
@@ -98,7 +105,7 @@ public class RelationalQueueStore(SqlDialect dialect, QueueLimits? limits = null
     public Task<QueueItem?> GetAsync(Guid id, CancellationToken cancellationToken = default)
         => ExecuteAsync(async connection =>
         {
-            await using var command = CreateCommand(connection, $"SELECT {SqlDialect.Columns} FROM {dialect.Table} WHERE id=@id", [("id", dialect.Id(id))]);
+            await using var command = _commands.Create(connection, $"SELECT {SqlDialect.Columns} FROM {dialect.Table} WHERE id=@id", [("id", dialect.Id(id))]);
             await using var reader = await command.ExecuteReaderAsync(cancellationToken);
             return await reader.ReadAsync(cancellationToken) ? ReadItem(reader) : null;
         }, cancellationToken);
@@ -115,7 +122,7 @@ public class RelationalQueueStore(SqlDialect dialect, QueueLimits? limits = null
                 ? $"DECLARE @observed_at datetime2(3)={dialect.Now};"
                 : $"WITH observed AS MATERIALIZED (SELECT {dialect.Now} AS observed_at)";
             var now = dialect.Engine == DatabaseEngine.SqlServer ? "@observed_at" : "(SELECT observed_at FROM observed)";
-            await using var command = CreateCommand(connection, $"""
+            await using var command = _commands.Create(connection, $"""
                 {clock}
                 SELECT COALESCE(SUM(CASE WHEN state=0 AND available_at<={now} THEN CAST(1 AS bigint) ELSE 0 END),0),
                   COALESCE(SUM(CASE WHEN state=0 AND available_at>{now} THEN CAST(1 AS bigint) ELSE 0 END),0),
@@ -148,7 +155,7 @@ public class RelationalQueueStore(SqlDialect dialect, QueueLimits? limits = null
             }
             var prefix = dialect.Engine == DatabaseEngine.SqlServer ? "TOP (@size) " : "";
             var suffix = dialect.Engine == DatabaseEngine.SqlServer ? "" : " LIMIT @size";
-            await using var command = CreateCommand(connection,
+            await using var command = _commands.Create(connection,
                 $"SELECT {prefix}id,command,state,attempt_count,created_at,available_at,last_error FROM {dialect.Table} WHERE queue_name=@queue AND state=@state{cursor} ORDER BY created_at,id{suffix}", parameters);
             await using var reader = await command.ExecuteReaderAsync(cancellationToken);
             var items = new List<ItemSummary>();
@@ -166,7 +173,7 @@ public class RelationalQueueStore(SqlDialect dialect, QueueLimits? limits = null
         {
             var values = parameters.Append(("id", (object?)dialect.Id(id))).ToArray();
             if (await NonQueryAsync(connection, sql, values, cancellationToken) > 0) return MutationOutcome.Applied;
-            await using var command = CreateCommand(connection, $"SELECT 1 FROM {dialect.Table} WHERE id=@id", [("id", dialect.Id(id))]);
+            await using var command = _commands.Create(connection, $"SELECT 1 FROM {dialect.Table} WHERE id=@id", [("id", dialect.Id(id))]);
             return await command.ExecuteScalarAsync(cancellationToken) is null ? MutationOutcome.AlreadyAbsent : MutationOutcome.OwnershipLost;
         }, cancellationToken);
 
@@ -190,28 +197,10 @@ public class RelationalQueueStore(SqlDialect dialect, QueueLimits? limits = null
         }
     }
 
-    private DbCommand CreateCommand(DbConnection connection, string sql, IEnumerable<(string Name, object? Value)> values, DbTransaction? transaction = null)
-    {
-        var command = connection.CreateCommand();
-        command.CommandText = sql;
-        command.CommandTimeout = 5;
-        command.Transaction = transaction;
-        foreach (var (name, value) in values)
-        {
-            var parameter = command.CreateParameter();
-            parameter.ParameterName = "@" + name;
-            parameter.Value = value ?? DBNull.Value;
-            if (value is null) parameter.DbType = DbType.String;
-            if (value is DateTime && dialect.Engine == DatabaseEngine.SqlServer) parameter.DbType = DbType.DateTime2;
-            command.Parameters.Add(parameter);
-        }
-        return command;
-    }
-
     private async Task<int> NonQueryAsync(DbConnection connection, string sql, IEnumerable<(string, object?)> values,
         CancellationToken cancellationToken, DbTransaction? transaction = null)
     {
-        await using var command = CreateCommand(connection, sql, values, transaction);
+        await using var command = _commands.Create(connection, sql, values, transaction);
         return await command.ExecuteNonQueryAsync(cancellationToken);
     }
 

@@ -1,0 +1,15 @@
+{
+  "completedMeasurements": 18,
+  "expectedMeasurements": 18,
+  "publishedAtUtc": "2026-10-30T21:13:04.766473+00:00",
+  "tests": {
+    "sqlServerRcsiOFF": {
+      "passed": 76,
+      "failed": 0
+    },
+    "sqlServerRcsiON": {
+      "passed": 76,
+      "failed": 0
+    }
+  }
+}

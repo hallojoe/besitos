@@ -7,16 +7,17 @@ import subprocess
 import sys
 
 if '--allow-100k' not in sys.argv:
-    raise SystemExit('Pass --allow-100k to run nine 100,000-item workloads.')
+    raise SystemExit('Pass --allow-100k to run twelve 100,000-item workloads.')
 root = Path(__file__).resolve().parents[2]
 settings = json.loads((root / '.artifacts/test-engines.json').read_text())
-for provider in ('sqlite','postgres','sqlserver'):
+for provider in ('sqlite','postgres','sqlserver','azurestorage'):
     for concurrency in (1,4,16):
         env = os.environ.copy()
+        if provider == 'azurestorage':env['BESITOS_AZURITE_VERSION'] = settings['azuriteVersion']
         env['BESITOS_CONNECTION'] = f'Data Source={root / ".artifacts/benchmark.db"}' if provider == 'sqlite' else settings[f'{provider}Connection']
         path = root / f'.artifacts/benchmark-{provider}-x{concurrency}.json'
         with path.open('w') as output:
-            subprocess.run(['dotnet',str(root / 'src/Queue.Benchmarks/bin/Debug/net10.0/Queue.Benchmarks.dll'),
+            subprocess.run(['dotnet',str(root / 'src/Queue.Benchmarks/bin/Debug/net11.0/Queue.Benchmarks.dll'),
                 '--provider',provider,'--count','100000','--concurrency',str(concurrency),'--allow-100k'],
                 env=env,cwd=root,stdout=output,check=True)
         result=json.loads(path.read_text())

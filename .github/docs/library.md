@@ -36,7 +36,10 @@ sealed class PrintCommand : ICommandHandler
 }
 ```
 
-Use `AddPostgresQueue` or `AddSqlServerQueue` to change providers.
+Use `AddPostgresQueue` or `AddSqlServerQueue` to change database providers.
+Use `AddAzureStorageQueue` for native Storage Queues.
+See [Azure Storage behavior](azure-storage.md) for its smaller messages, non-atomic batches, and instance-local receipts.
+The database guarantees below apply to SQLite, PostgreSQL, and SQL Server.
 Supabase uses the ordinary PostgreSQL provider and an Npgsql connection string.
 There is no Supabase dependency.
 
@@ -56,6 +59,12 @@ The default payload limit is 256 KiB, measured as UTF-8.
 This is library policy, not a database storage limit.
 Configure `QueueLimits` during provider registration to change it.
 Oversized payloads fail validation. They are never truncated.
+
+## Atomic batch insertion
+
+Use `EnqueueBatchAsync` when the caller already has multiple envelopes.
+Each bounded call commits all new rows together. Single-item calls remain immediate.
+Read [batch insertion](batch-insertion.md) for examples, limits, and retry rules.
 
 ## Ownership and outcomes
 

@@ -15,7 +15,7 @@ import urllib.error
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[2]
-DLL = ROOT / 'src/QueueDemo.Worker/bin/Debug/net10.0/QueueDemo.Worker.dll'
+DLL = ROOT / 'src/QueueDemo.Worker/bin/Debug/net11.0/QueueDemo.Worker.dll'
 engines = json.loads((ROOT / '.artifacts/test-engines.json').read_text()) if (ROOT / '.artifacts/test-engines.json').exists() else None
 key = secrets.token_hex(32)
 events = collections.deque(maxlen=10_000)

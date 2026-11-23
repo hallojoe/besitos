@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <Sdk Name="Aspire.AppHost.Sdk" Version="13.6.4" />
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <IsAspireHost>true</IsAspireHost>
@@ -8,10 +7,13 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.AppHost" />
+    <PackageReference Include="Aspire.Hosting.Dotnet" />
+    <PackageReference Include="CommunityToolkit.Aspire.Hosting.MailPit" />
+    <PackageReference Include="Aspire.Hosting.Azure.Storage" />
     <PackageReference Include="System.Security.Cryptography.Pkcs" />
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
     <PackageReference Include="Aspire.Hosting.SqlServer" />
-    <ProjectReference Include="../QueueDemo.Web/QueueDemo.Web.csproj" />
-    <ProjectReference Include="../QueueDemo.Worker/QueueDemo.Worker.csproj" />
+    <PackageReference Include="CommunityToolkit.Aspire.Hosting.Sqlite" />
+    <PackageReference Include="CommunityToolkit.Aspire.Hosting.SqlServer.Extensions" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,79 @@
+[
+  {
+    "displayName": "azurestorage-queue",
+    "state": "Running",
+    "healthStatus": "Healthy",
+    "relationships": [
+      {
+        "type": "Parent",
+        "resourceName": "azurite-vnjepdjp"
+      }
+    ],
+    "volumes": []
+  },
+  {
+    "displayName": "azurestorage-worker",
+    "state": "Running",
+    "healthStatus": "Healthy",
+    "relationships": [
+      {
+        "type": "Reference",
+        "resourceName": "demo-key"
+      },
+      {
+        "type": "Reference",
+        "resourceName": "console-spegcpss"
+      },
+      {
+        "type": "Reference",
+        "resourceName": "azurestorage-queue"
+      },
+      {
+        "type": "WaitFor",
+        "resourceName": "azurestorage-queue"
+      }
+    ],
+    "volumes": []
+  },
+  {
+    "displayName": "azurite",
+    "state": "Running",
+    "healthStatus": "Healthy",
+    "relationships": [],
+    "volumes": [
+      {
+        "source": "besitos-azurite-data",
+        "target": "/data",
+        "mountType": "volume"
+      }
+    ]
+  },
+  {
+    "displayName": "console",
+    "state": "Running",
+    "healthStatus": "Healthy",
+    "relationships": [
+      {
+        "type": "Reference",
+        "resourceName": "demo-key"
+      },
+      {
+        "type": "Reference",
+        "resourceName": "sqlite-worker-rbtskuer"
+      },
+      {
+        "type": "Reference",
+        "resourceName": "postgres-worker-bpknbfmh"
+      },
+      {
+        "type": "Reference",
+        "resourceName": "sqlserver-worker-znawwtwz"
+      },
+      {
+        "type": "Reference",
+        "resourceName": "azurestorage-worker-wnusvhyj"
+      }
+    ],
+    "volumes": []
+  }
+]

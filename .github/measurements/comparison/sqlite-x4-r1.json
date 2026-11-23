@@ -1,0 +1,147 @@
+{
+  "provider": "sqlite",
+  "databaseVersion": "3.53.3",
+  "storageSdkVersion": null,
+  "serviceApiVersion": null,
+  "emulator": null,
+  "atomicBatchEnqueue": true,
+  "queue": "batchmeasure-b058fb26b70248c78fd4d7015e14e73f",
+  "mode": "benchmark",
+  "count": 1000,
+  "concurrency": 4,
+  "batchSize": 100,
+  "enqueued": 1000,
+  "enqueuePerSecond": 12786.677305182186,
+  "payloadBytes": 128,
+  "runtime": ".NET 10.0.14",
+  "os": "Omarchy",
+  "architecture": "X64",
+  "logicalProcessors": 8,
+  "enqueueSeconds": 0.0782064,
+  "consumeSeconds": 1.7473506,
+  "completionPerSecond": 572.2949933459261,
+  "completed": 1000,
+  "storageErrors": 0,
+  "peakWorkingSetBytes": 80465920,
+  "managedHeapBytes": 6309456,
+  "cpuSeconds": 1.074619,
+  "batchLatencyHistogram": [
+    {
+      "upperMs": "0.1",
+      "count": 0
+    },
+    {
+      "upperMs": "0.25",
+      "count": 0
+    },
+    {
+      "upperMs": "0.5",
+      "count": 0
+    },
+    {
+      "upperMs": "1",
+      "count": 0
+    },
+    {
+      "upperMs": "2",
+      "count": 0
+    },
+    {
+      "upperMs": "5",
+      "count": 8
+    },
+    {
+      "upperMs": "10",
+      "count": 0
+    },
+    {
+      "upperMs": "25",
+      "count": 1
+    },
+    {
+      "upperMs": "50",
+      "count": 1
+    },
+    {
+      "upperMs": "100",
+      "count": 0
+    },
+    {
+      "upperMs": "500",
+      "count": 0
+    },
+    {
+      "upperMs": ">500",
+      "count": 0
+    }
+  ],
+  "claimLatencyHistogram": [
+    {
+      "upperMs": "0.1",
+      "count": 0
+    },
+    {
+      "upperMs": "0.25",
+      "count": 3
+    },
+    {
+      "upperMs": "0.5",
+      "count": 0
+    },
+    {
+      "upperMs": "1",
+      "count": 928
+    },
+    {
+      "upperMs": "2",
+      "count": 61
+    },
+    {
+      "upperMs": "5",
+      "count": 3
+    },
+    {
+      "upperMs": "10",
+      "count": 2
+    },
+    {
+      "upperMs": "25",
+      "count": 1
+    },
+    {
+      "upperMs": "50",
+      "count": 0
+    },
+    {
+      "upperMs": "100",
+      "count": 0
+    },
+    {
+      "upperMs": "500",
+      "count": 3
+    },
+    {
+      "upperMs": ">500",
+      "count": 3
+    }
+  ],
+  "final": {
+    "Ready": 0,
+    "Delayed": 0,
+    "Leased": 0,
+    "Dead": 0,
+    "OldestAvailableAt": null,
+    "ObservedAt": "2026-11-10T20:05:35.314+00:00"
+  },
+  "approximateFinal": null,
+  "validation": "Exact final queue statistics.",
+  "note": "No handler delay. Storage-only benchmark. Database memory, lock waits, and browser memory require separate observation.",
+  "exitCode": 0,
+  "comparison": {
+    "cohort": "local-20261110T200523Z",
+    "environmentId": "4fb441aeada6c70a",
+    "build": "Release",
+    "repetition": 1,
+    "capturedAt": "2026-11-10T20:05:35.343215+00:00"
+  }
+}

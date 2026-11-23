@@ -25,7 +25,7 @@ url=f'http://localhost:{web_port}'
 
 def launch(name,env,listen):
     log=open(root/f'.artifacts/console-check-{name}-{len(logs)}.log','w');logs.append(log)
-    process=subprocess.Popen(['dotnet',str(root/f'src/QueueDemo.{name}/bin/Debug/net10.0/QueueDemo.{name}.dll'),'--urls',listen],
+    process=subprocess.Popen(['dotnet',str(root/f'src/QueueDemo.{name}/bin/Debug/net11.0/QueueDemo.{name}.dll'),'--urls',listen],
         cwd=root/f'src/QueueDemo.{name}',env=env,stdout=log,stderr=subprocess.STDOUT)
     processes.append(process);return process
 
@@ -66,7 +66,7 @@ try:
             try:request(path,{},headers);raise AssertionError('Unprotected control.')
             except urllib.error.HTTPError as e:assert e.code==expected
         worker=launch('Worker',env|{'Demo__WebUrl':url,'Queue__Provider':'sqlite','ConnectionStrings__queue':f'Data Source={database}'},f'http://127.0.0.1:{worker_port}')
-        wait(lambda:request('/api/providers')[0]['state']=='ready')
+        wait(lambda:next(p for p in request('/api/providers') if p['provider']=='sqlite' and p['queueName']=='default')['state']=='ready')
         assert database.exists()
         with stream() as response:
             assert response.headers['Content-Type'].startswith('text/event-stream')
@@ -84,13 +84,36 @@ try:
         response.close()
         web=launch('Web',env,f'http://127.0.0.1:{web_port}')
         wait(lambda:request('/health'))
-        wait(lambda:request('/api/providers')[0]['state']=='ready')
+        wait(lambda:next(p for p in request('/api/providers') if p['provider']=='sqlite' and p['queueName']=='default')['state']=='ready')
         with stream(cursor) as response:assert 'history-gap' in '\n'.join(read_event(response))
         print('HTTP authentication, origin protection, SSE replay/reset, open-stream shutdown, heartbeat recovery PASS',flush=True)
+        def snapshot():
+            req=urllib.request.Request(f'http://127.0.0.1:{worker_port}/snapshot',headers={'X-Besitos-Key':key})
+            with urllib.request.urlopen(req,timeout=5) as response: result=json.loads(response.read())
+            result['load']=next(p for p in request('/api/providers') if p['provider']=='sqlite' and p['queueName']=='default')['load']
+            return result
+        headers={'X-Besitos-Request':'console'}
+        request('/api/sqlite/load',{'count':250},headers)
+        wait(lambda:not snapshot()['load']['running'])
+        complete=snapshot()
+        assert complete['load']['enqueued']==250 and complete['stats']['ready']==250
+        request('/api/sqlite/load',{'count':100000},headers)
+        request('/api/sqlite/load/cancel',{},headers)
+        wait(lambda:not snapshot()['load']['running'])
+        cancelled=snapshot()
+        assert cancelled['load']['state'].startswith('cancelled')
+        confirmed=cancelled['load']['enqueued']
+        assert confirmed<100000 and confirmed%100==0
+        assert 0<=cancelled['stats']['ready']-250-confirmed<=100
+        request('/api/sqlite/control/start',{},headers)
+        wait(lambda:all(snapshot()['stats'][state]==0 for state in ['ready','delayed','leased','dead']),seconds=60)
+        request('/api/sqlite/control/pause',{},headers)
+        print('HTTP batch generation, confirmed progress, cancellation, and final accounting PASS',flush=True)
         if os.environ.get('BESITOS_BROWSER')=='1':
             subprocess.run(['playwright-cli','-s=besitos-system','open',url],cwd=root,check=True,stdout=subprocess.DEVNULL)
             try:
                 subprocess.run(['playwright-cli','-s=besitos-system','run-code','--filename=src/Queue.SystemTests/browser-smoke.js'],cwd=root,check=True)
+                subprocess.run(['playwright-cli','-s=besitos-system','run-code','--filename=src/Queue.SystemTests/browser-benchmarks.js'],cwd=root,check=True)
             finally:subprocess.run(['playwright-cli','-s=besitos-system','close'],cwd=root,stdout=subprocess.DEVNULL)
 finally:
     for process in reversed(processes):

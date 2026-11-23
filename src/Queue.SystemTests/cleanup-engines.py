@@ -6,8 +6,9 @@ import subprocess
 path=Path(__file__).resolve().parents[2]/'.artifacts/test-engines.json'
 if path.exists():
     settings=json.loads(path.read_text())
-    for provider in ('postgres','sqlserver'):
-        name=settings[provider]
+    for provider in ('postgres','sqlserver','azurestorage'):
+        name=settings.get(provider)
+        if name is None:continue
         if not name.startswith('besitos-test-'):raise ValueError('Unexpected container name.')
         subprocess.run([settings['engine'],'rm','-f',name],check=True)
     path.unlink()

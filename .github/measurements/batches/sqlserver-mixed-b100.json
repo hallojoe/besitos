@@ -1,0 +1,133 @@
+{
+  "provider": "sqlserver",
+  "databaseVersion": "16.00.4225",
+  "queue": "batchmeasure-d057fa1c18914c42a8fbff68a2a62cf8",
+  "mode": "mixed",
+  "count": 100000,
+  "concurrency": 4,
+  "batchSize": 100,
+  "enqueued": 100000,
+  "enqueuePerSecond": 3169.575151763141,
+  "payloadBytes": 128,
+  "runtime": ".NET 10.0.14",
+  "os": "Omarchy",
+  "architecture": "X64",
+  "logicalProcessors": 8,
+  "enqueueSeconds": 31.5499697,
+  "consumeSeconds": 184.7844026,
+  "completionPerSecond": 541.1712167961952,
+  "completed": 100000,
+  "storageErrors": 0,
+  "peakWorkingSetBytes": 114827264,
+  "managedHeapBytes": 3666368,
+  "cpuSeconds": 111.032397,
+  "batchLatencyHistogram": [
+    {
+      "upperMs": "0.1",
+      "count": 0
+    },
+    {
+      "upperMs": "0.25",
+      "count": 0
+    },
+    {
+      "upperMs": "0.5",
+      "count": 0
+    },
+    {
+      "upperMs": "1",
+      "count": 0
+    },
+    {
+      "upperMs": "2",
+      "count": 0
+    },
+    {
+      "upperMs": "5",
+      "count": 0
+    },
+    {
+      "upperMs": "10",
+      "count": 0
+    },
+    {
+      "upperMs": "25",
+      "count": 8
+    },
+    {
+      "upperMs": "50",
+      "count": 986
+    },
+    {
+      "upperMs": "100",
+      "count": 6
+    },
+    {
+      "upperMs": "500",
+      "count": 0
+    },
+    {
+      "upperMs": "\u003E500",
+      "count": 0
+    }
+  ],
+  "claimLatencyHistogram": [
+    {
+      "upperMs": "0.1",
+      "count": 0
+    },
+    {
+      "upperMs": "0.25",
+      "count": 0
+    },
+    {
+      "upperMs": "0.5",
+      "count": 0
+    },
+    {
+      "upperMs": "1",
+      "count": 5
+    },
+    {
+      "upperMs": "2",
+      "count": 233
+    },
+    {
+      "upperMs": "5",
+      "count": 55736
+    },
+    {
+      "upperMs": "10",
+      "count": 41933
+    },
+    {
+      "upperMs": "25",
+      "count": 1972
+    },
+    {
+      "upperMs": "50",
+      "count": 137
+    },
+    {
+      "upperMs": "100",
+      "count": 8
+    },
+    {
+      "upperMs": "500",
+      "count": 0
+    },
+    {
+      "upperMs": "\u003E500",
+      "count": 0
+    }
+  ],
+  "final": {
+    "Ready": 0,
+    "Delayed": 0,
+    "Leased": 0,
+    "Dead": 0,
+    "OldestAvailableAt": null,
+    "ObservedAt": "2026-10-30T21:09:45.003+00:00"
+  },
+  "note": "No handler delay. Storage-only benchmark. Database memory, lock waits, and browser memory require separate observation."
+}

@@ -6,7 +6,10 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Besitos.SqlServer;
 
 public sealed class SqlServerQueueStore(string connectionString, QueueLimits? limits = null)
-    : RelationalQueueStore(new SqlServerDialect(connectionString), limits);
+    : RelationalQueueStore(new SqlServerDialect(connectionString), limits)
+{
+    public static QueueProviderDescriptor Descriptor => Describe(DatabaseEngine.SqlServer);
+}
 
 public static class SqlServerRegistration
 {

@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 
 root=Path(__file__).resolve().parents[2]
-dll=os.environ.get('BESITOS_BENCHMARK_DLL',str(root/'src/Queue.Benchmarks/bin/Debug/net10.0/Queue.Benchmarks.dll'))
+dll=os.environ.get('BESITOS_BENCHMARK_DLL',str(root/'src/Queue.Benchmarks/bin/Debug/net11.0/Queue.Benchmarks.dll'))
 with tempfile.TemporaryDirectory(prefix='besitos-migration-') as directory:
     connections={'sqlite':f'Data Source={Path(directory)/"queue.db"}'}
     for provider in ('postgres','sqlserver'):

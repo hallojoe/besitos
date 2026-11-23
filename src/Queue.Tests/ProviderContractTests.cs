@@ -8,13 +8,15 @@ using Xunit;
 
 namespace Besitos.Tests;
 
+[Collection("Provider database")]
 public sealed class ProviderContractTests
 {
-    public static IEnumerable<object[]> Providers()
+    public static TheoryData<string> Providers()
     {
-        yield return ["sqlite"];
-        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("BESITOS_TEST_POSTGRES"))) yield return ["postgres"];
-        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("BESITOS_TEST_SQLSERVER"))) yield return ["sqlserver"];
+        var providers = new TheoryData<string> { "sqlite" };
+        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("BESITOS_TEST_POSTGRES"))) providers.Add("postgres");
+        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("BESITOS_TEST_SQLSERVER"))) providers.Add("sqlserver");
+        return providers;
     }
 
     internal static async Task<TestStore> CreateAsync(string provider)
@@ -302,6 +304,8 @@ public sealed class ProviderContractTests
     {
         var path = Path.Combine(Path.GetTempPath(), $"besitos-absent-{Guid.NewGuid():N}.db");
         var store = new SqliteQueueStore($"Data Source={path};Pooling=False");
+        Assert.False(File.Exists(path));
+        Assert.Empty(await store.EnqueueBatchAsync([]));
         Assert.False(File.Exists(path));
         await Assert.ThrowsAsync<SqliteException>(() => store.GetStatsAsync("default"));
         Assert.False(File.Exists(path));

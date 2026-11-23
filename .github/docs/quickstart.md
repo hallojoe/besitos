@@ -2,8 +2,8 @@
 
 ## Prerequisites
 
-Use .NET SDK 10.0.403 and Aspire CLI 13.6.4.
-Use Docker or rootless Podman for the server databases.
+Use .NET SDK 11.0.100 and Aspire CLI 17.0.0.
+Use Docker or rootless Podman for the server databases and database UIs.
 SQL Server containers require Linux x86-64. Use an external SQL Server on unsupported hosts.
 SQLite needs a local writable directory. Do not use a network filesystem.
 
@@ -26,13 +26,31 @@ The HTTP profile is for local development. The HTTPS profile uses the local deve
 3. For SQLite, start `sqlite-worker`.
 4. For PostgreSQL, start `postgres`, then `postgres-worker`.
 5. For SQL Server, start `sqlserver`, then `sqlserver-worker`.
-6. Select the provider in the console.
-7. Enqueue a command. Select **Start processing**.
+6. For Azure Storage, start `azurite`, then `azurestorage-worker`.
+7. Select the provider and **Default** group in the console.
+8. Select **Enqueue a command** to open its modal. Submit it, then select **Start processing**.
 
 Starting AppHost starts only the console.
-Database containers and workers use Aspire's `WithExplicitStart` API.
-SQLite creates `.data/queue.db` only when its worker starts.
+The dashboard groups each provider's database, workers, and management UI under `sqlserver`, `postgres`, `sqlite-queue`, or `azurite`.
+Expand a group to see its resources and worker replicas.
+Database containers, database UIs, and workers use Aspire's `WithExplicitStart` API.
+AppHost creates `.data/queue.db` at startup if the file does not exist.
 The worker initializes its schema and starts paused.
+
+### Open a database UI
+
+Start the database and worker using the steps above. Then start its UI from the Aspire dashboard:
+
+| Database | UI resource |
+| --- | --- |
+| PostgreSQL | `pgadmin` |
+| SQLite | `sqlite-queue-sqliteweb` |
+| SQL Server | `dbgate` |
+
+Open the UI endpoint shown in the dashboard.
+pgAdmin lists only the queue PostgreSQL server.
+SQLiteWeb uses the same `queue.db` file as the SQLite worker.
+The UIs are available only in run mode. Publish mode excludes their containers.
 
 The following CLI commands provide the same SQLite workflow:
 
@@ -42,7 +60,14 @@ aspire wait sqlite-worker --apphost src/QueueDemo.AppHost/QueueDemo.AppHost.cspr
 ```
 
 Use **Pause** to stop new claims. Active handlers finish with lease renewal enabled.
-Change `Worker__Concurrency`, then restart the worker to change X.
+For Aspire, configure `Groups__default__Concurrency` and restart the AppHost.
+Standalone workers use `Worker__Concurrency`.
+
+For email, start Mailpit and the chosen provider's `many-email` replicas.
+Select **Many emails**, open **Generate test emails**, and submit the workload.
+Select **Start processing**, then use **Open Mailpit inbox** to inspect messages.
+See [queue groups and email](groups-and-email.md) for retry behavior and configuration.
+Open **Benchmarks** to [compare saved measurements](benchmark-console.md).
 
 Try these presets:
 
@@ -56,6 +81,71 @@ Try these presets:
 Use the inspector to read payloads and errors as text.
 Replay keeps the ID and resets attempts to zero.
 A replayed poison command fails again until its handler behavior changes.
+
+## Analyze with SonarQube
+
+SonarQube Community Build runs locally with its own PostgreSQL database.
+The dashboard groups its PostgreSQL server and password parameter under `sonarqube`, with `sonar-db` nested under the server.
+Both containers require manual startup and stop with AppHost.
+Named volumes preserve their data. Queue workers do not depend on SonarQube.
+Port `9000` must be available.
+
+Check the container host limits before starting SonarQube:
+
+```bash
+sysctl vm.max_map_count fs.file-max
+ulimit -n
+ulimit -u
+```
+
+Required minimums are `vm.max_map_count=524288`, `fs.file-max=131072`, `nofile=131072`, and `nproc=8192`.
+Check the container runtime's limits too. Shell limits alone do not configure its service.
+With Docker Desktop, check the Linux VM hosting Docker.
+See [SonarSource's Linux requirements](https://docs.sonarsource.com/sonarqube-community-build/server-installation/pre-installation/linux).
+AppHost does not change host settings.
+
+Aspire generates `sonar-db-password` and stores it in the AppHost user secrets.
+To provide your own password, run this before the first database startup:
+
+```bash
+dotnet user-secrets set --project src/QueueDemo.AppHost "Parameters:sonar-db-password" "YOUR-STRONG-PASSWORD"
+```
+
+Retain this secret while retaining `besitos-sonar-postgres-data`.
+Changing the parameter does not change the password inside an existing database.
+SonarQube also uses `besitos-sonarqube-data`, `besitos-sonarqube-extensions`, and `besitos-sonarqube-logs`.
+Do not delete these volumes to restart the service.
+
+Start AppHost, then start the resources through its dashboard or these commands:
+
+```bash
+aspire resource sonar-postgres start --apphost src/QueueDemo.AppHost/QueueDemo.AppHost.csproj --non-interactive
+aspire wait sonar-postgres --apphost src/QueueDemo.AppHost/QueueDemo.AppHost.csproj --non-interactive
+aspire resource sonarqube start --apphost src/QueueDemo.AppHost/QueueDemo.AppHost.csproj --non-interactive
+aspire wait sonarqube --apphost src/QueueDemo.AppHost/QueueDemo.AppHost.csproj --non-interactive
+```
+
+Open <http://localhost:9000> and wait for the login page.
+Aspire's running state does not guarantee that SonarQube has finished initialization.
+Sign in with `admin` / `admin`, then change the password.
+Create a local project with key `besitos` and generate an analysis token.
+
+Run the scanner separately from the repository root:
+
+```bash
+dotnet tool install --global dotnet-sonarscanner
+read -rsp 'SonarQube analysis token: ' SONAR_TOKEN
+echo
+dotnet sonarscanner begin /k:"besitos" /d:sonar.host.url="http://localhost:9000" /d:sonar.token="$SONAR_TOKEN"
+dotnet build Besitos.slnx --no-incremental --disable-build-servers
+dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
+unset SONAR_TOKEN
+```
+
+Skip installation if the scanner is already installed. Run each analysis step only after the previous step succeeds.
+The scanner wraps the build and uploads results. AppHost does not run analysis automatically.
+Scanner output under `.sonarqube/` is ignored by Git.
+See the [SonarScanner instructions](https://docs.sonarsource.com/sonarqube-community-build/analyzing-source-code/scanners/dotnet/using).
 
 ## Run without Aspire
 
@@ -114,3 +204,9 @@ aspire stop --apphost src/QueueDemo.AppHost/QueueDemo.AppHost.csproj
 
 Normal shutdown preserves database volumes and the SQLite file.
 See [storage operations](storage.md) before resetting local data.
+
+## Azure Storage
+
+Start `azurite`, then `azurestorage-worker`, from the Aspire dashboard.
+Select Azure Storage in the console, enqueue work, and start processing.
+See [Azure Storage](azure-storage.md) for native limits and approximate statistics.

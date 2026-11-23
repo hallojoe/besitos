@@ -1,0 +1,10 @@
+{
+  "capturedAtUtc": "2026-10-30T21:01:57.737049+00:00",
+  "containerEngine": "podman",
+  "os": "Linux-7.2.8-9-omarchy-x86_64-with-glibc2.44",
+  "cpu": "11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz",
+  "logicalProcessors": 8,
+  "physicalMemoryBytes": 33336041472,
+  "filesystem": "btrfs",
+  "dotnetSdk": "10.0.403"
+}

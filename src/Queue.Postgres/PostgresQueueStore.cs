@@ -6,7 +6,10 @@ using Npgsql;
 namespace Besitos.Postgres;
 
 public sealed class PostgresQueueStore(string connectionString, QueueLimits? limits = null)
-    : RelationalQueueStore(new PostgresDialect(connectionString), limits);
+    : RelationalQueueStore(new PostgresDialect(connectionString), limits)
+{
+    public static QueueProviderDescriptor Descriptor => Describe(DatabaseEngine.Postgres);
+}
 
 public static class PostgresRegistration
 {

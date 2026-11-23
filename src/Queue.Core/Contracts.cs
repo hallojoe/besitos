@@ -35,6 +35,7 @@ public sealed record ItemPage(IReadOnlyList<ItemSummary> Items, PageCursor? Next
 public interface IQueueStore
 {
     Task<Guid> EnqueueAsync(Envelope envelope, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Guid>> EnqueueBatchAsync(IReadOnlyList<Envelope> envelopes, CancellationToken cancellationToken = default);
     Task<QueueItem?> ClaimAsync(string queueName, TimeSpan leaseDuration, CancellationToken cancellationToken = default);
     Task<MutationOutcome> CompleteAsync(Guid id, Guid token, CancellationToken cancellationToken = default);
     Task<MutationOutcome> FailAsync(QueueItem item, FailureKind kind, string error, CancellationToken cancellationToken = default);
@@ -58,9 +59,14 @@ public interface IQueueSchema
 
 public sealed record QueueLimits(int PayloadBytes = 256 * 1024, int MetadataBytes = 16 * 1024, int ErrorCharacters = 1024)
 {
+    public int BatchItems { get; init; } = 1000;
+    public int BatchBytes { get; init; } = 4 * 1024 * 1024;
+
     public void Validate()
     {
         if (PayloadBytes is < 1 or > 16 * 1024 * 1024 || MetadataBytes is < 1 or > 1024 * 1024 || ErrorCharacters is < 1 or > 1024)
+            throw new ArgumentOutOfRangeException(nameof(QueueLimits));
+        if (BatchItems is < 1 or > 1000 || BatchBytes is < 1 or > 4 * 1024 * 1024)
             throw new ArgumentOutOfRangeException(nameof(QueueLimits));
     }
 }
@@ -100,7 +106,7 @@ public static partial class EnvelopeValidation
         if (envelope.MaxAttempts is < 1 or > 1000 || envelope.Id == Guid.Empty)
             throw new ArgumentException("Invalid attempts or ID.");
         if (envelope.InitialDelay < TimeSpan.Zero || envelope.InitialDelay > TimeSpan.FromDays(365))
-            throw new ArgumentOutOfRangeException(nameof(envelope.InitialDelay));
+            throw new ArgumentOutOfRangeException(nameof(envelope), "InitialDelay must be between zero and 365 days.");
     }
 
     private static void Text(string value, int maxBytes, string name)
@@ -133,7 +139,7 @@ public static class RetryPolicy
     /// <summary>Exponential delay with 80–120% jitter, capped at 60 seconds.</summary>
     public static TimeSpan Delay(int attempt, double? sample = null)
     {
-        if (attempt < 1) throw new ArgumentOutOfRangeException(nameof(attempt));
+        ArgumentOutOfRangeException.ThrowIfLessThan(attempt, 1);
         var random = sample ?? Random.Shared.NextDouble();
         if (!double.IsFinite(random) || random is < 0 or > 1) throw new ArgumentOutOfRangeException(nameof(sample));
         return TimeSpan.FromMilliseconds(Math.Min(60_000, 1000 * Math.Pow(2, Math.Min(attempt - 1, 6)) * (0.8 + 0.4 * random)));

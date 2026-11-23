@@ -2,6 +2,6 @@
 
   <ItemGroup>
     <ProjectReference Include="../Queue.Core/Queue.Core.csproj" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <ProjectReference Include="../Queue.Delivery/Queue.Delivery.csproj" />
   </ItemGroup>
 </Project>

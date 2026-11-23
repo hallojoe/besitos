@@ -1,6 +1,6 @@
 # Provider registration and migration
 
-The solution targets .NET 10. The refactor does not require preview language features.
+The solution targets .NET 11. The refactor does not require preview language features.
 
 ## Register independent stores and groups
 

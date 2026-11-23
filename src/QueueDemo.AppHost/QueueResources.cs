@@ -22,11 +22,13 @@ internal static class QueueResources
     {
         var directory = builder.Configuration["SqliteDirectory"] ?? Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "../../.data"));
         directory = Path.GetFullPath(directory, builder.AppHostDirectory);
-        builder.AddQueueSqliteDatabase(directory);
+        var database = builder.AddQueueSqliteDatabase(directory);
         var connection = new System.Data.Common.DbConnectionStringBuilder { ["Data Source"] = Path.Combine(directory, "queue.db") };
         builder.AddQueueWorker("sqlite", console, key, "many-email", mailpit)
+            .WithParentRelationship(database)
             .WithEnvironment("ConnectionStrings__queue", connection.ConnectionString);
         return builder.AddQueueWorker("sqlite", console, key, "default", mailpit)
+            .WithParentRelationship(database)
             .WithEnvironment("ConnectionStrings__queue", connection.ConnectionString);
     }
 
@@ -44,8 +46,12 @@ internal static class QueueResources
         IResourceBuilder<DotnetProjectResource> console, IResourceBuilder<ParameterResource> key, IResourceBuilder<MailPitContainerResource> mailpit)
     {
         var database = builder.AddQueuePostgresDatabase();
-        builder.AddQueueWorker("postgres", console, key, "many-email", mailpit).WithReference(database, "queue").WaitFor(database);
-        return builder.AddQueueWorker("postgres", console, key, "default", mailpit).WithReference(database, "queue").WaitFor(database);
+        builder.AddQueueWorker("postgres", console, key, "many-email", mailpit)
+            .WithParentRelationship(database.Resource.Parent)
+            .WithReference(database, "queue").WaitFor(database);
+        return builder.AddQueueWorker("postgres", console, key, "default", mailpit)
+            .WithParentRelationship(database.Resource.Parent)
+            .WithReference(database, "queue").WaitFor(database);
     }
 
     private static IResourceBuilder<PostgresDatabaseResource> AddQueuePostgresDatabase(this IDistributedApplicationBuilder builder)
@@ -58,6 +64,7 @@ internal static class QueueResources
         {
             // Aspire's default server list also includes the unrelated SonarQube database.
             server.WithPgAdmin(ui => ui.WithExplicitStart()
+                .WithParentRelationship(server)
                 .WithEnvironment("PGADMIN_SERVER_JSON_FILE", "/pgadmin4/queue-servers.json")
                 .WithContainerFiles("/pgadmin4", async (_, cancellationToken) =>
                 [
@@ -91,8 +98,12 @@ internal static class QueueResources
         IResourceBuilder<DotnetProjectResource> console, IResourceBuilder<ParameterResource> key, IResourceBuilder<MailPitContainerResource> mailpit)
     {
         var database = builder.AddQueueSqlServerDatabase();
-        builder.AddQueueWorker("sqlserver", console, key, "many-email", mailpit).WithReference(database, "queue").WaitFor(database);
-        return builder.AddQueueWorker("sqlserver", console, key, "default", mailpit).WithReference(database, "queue").WaitFor(database);
+        builder.AddQueueWorker("sqlserver", console, key, "many-email", mailpit)
+            .WithParentRelationship(database.Resource.Parent)
+            .WithReference(database, "queue").WaitFor(database);
+        return builder.AddQueueWorker("sqlserver", console, key, "default", mailpit)
+            .WithParentRelationship(database.Resource.Parent)
+            .WithReference(database, "queue").WaitFor(database);
     }
 
     private static IResourceBuilder<SqlServerDatabaseResource> AddQueueSqlServerDatabase(this IDistributedApplicationBuilder builder)
@@ -103,7 +114,7 @@ internal static class QueueResources
             .WithExplicitStart();
         if (builder.ExecutionContext.IsRunMode)
         {
-            server.WithDbGate(ui => ui.WithExplicitStart());
+            server.WithDbGate(ui => ui.WithExplicitStart().WithParentRelationship(server));
         }
         return server.AddDatabase("sqlserver-queue", "besitos");
     }
@@ -112,8 +123,12 @@ internal static class QueueResources
         IResourceBuilder<DotnetProjectResource> console, IResourceBuilder<ParameterResource> key, IResourceBuilder<MailPitContainerResource> mailpit)
     {
         var queues = builder.AddQueueAzureStorage();
-        builder.AddQueueWorker("azurestorage", console, key, "many-email", mailpit).WithReference(queues, "queue").WaitFor(queues);
-        return builder.AddQueueWorker("azurestorage", console, key, "default", mailpit).WithReference(queues, "queue").WaitFor(queues);
+        builder.AddQueueWorker("azurestorage", console, key, "many-email", mailpit)
+            .WithParentRelationship(queues.Resource.Parent)
+            .WithReference(queues, "queue").WaitFor(queues);
+        return builder.AddQueueWorker("azurestorage", console, key, "default", mailpit)
+            .WithParentRelationship(queues.Resource.Parent)
+            .WithReference(queues, "queue").WaitFor(queues);
     }
 
     private static IResourceBuilder<AzureQueueStorageResource> AddQueueAzureStorage(this IDistributedApplicationBuilder builder)

@@ -10,7 +10,7 @@ internal static class SonarQubeResources
         var database = postgres.AddDatabase("sonar-db", "sonar");
         var endpoint = postgres.GetEndpoint("tcp");
 
-        return builder.AddContainer("sonarqube", "docker.io/library/sonarqube", "26.10.0.133078-community")
+        var sonarqube = builder.AddContainer("sonarqube", "docker.io/library/sonarqube", "26.10.0.133078-community")
             .WithHttpEndpoint(port: 9000, targetPort: 9000, name: "http")
             .WithEnvironment("SONAR_JDBC_URL", ReferenceExpression.Create(
                 $"jdbc:postgresql://{endpoint.Property(EndpointProperty.Host)}:{endpoint.Property(EndpointProperty.Port)}/{database.Resource.DatabaseName}"))
@@ -21,6 +21,10 @@ internal static class SonarQubeResources
             .WithVolume("besitos-sonarqube-logs", "/opt/sonarqube/logs")
             .WithExplicitStart()
             .WaitFor(database);
+
+        postgres.WithParentRelationship(sonarqube);
+        password.WithParentRelationship(sonarqube);
+        return sonarqube;
     }
 
     private static IResourceBuilder<PostgresServerResource> AddSonarPostgres(this IDistributedApplicationBuilder builder,

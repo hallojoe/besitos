@@ -25,7 +25,7 @@ url=f'http://localhost:{web_port}'
 
 def launch(name,env,listen):
     log=open(root/f'.artifacts/console-check-{name}-{len(logs)}.log','w');logs.append(log)
-    process=subprocess.Popen(['dotnet',str(root/f'src/QueueDemo.{name}/bin/Debug/net10.0/QueueDemo.{name}.dll'),'--urls',listen],
+    process=subprocess.Popen(['dotnet',str(root/f'src/QueueDemo.{name}/bin/Debug/net11.0/QueueDemo.{name}.dll'),'--urls',listen],
         cwd=root/f'src/QueueDemo.{name}',env=env,stdout=log,stderr=subprocess.STDOUT)
     processes.append(process);return process
 

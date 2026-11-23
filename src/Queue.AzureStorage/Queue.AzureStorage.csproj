@@ -3,6 +3,5 @@
     <ProjectReference Include="../Queue.Core/Queue.Core.csproj" />
     <ProjectReference Include="../Queue.Delivery/Queue.Delivery.csproj" />
     <PackageReference Include="Azure.Storage.Queues" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
   </ItemGroup>
 </Project>

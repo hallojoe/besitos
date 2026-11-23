@@ -31,7 +31,7 @@ Delivery is **at least once**. Handlers must tolerate duplicate execution.
 
 ![Besitos queue console](.github/assets/console.png)
 
-Built for .NET 10. Designed for backlogs up to 100,000 items.
+Built for .NET 11. Designed for backlogs up to 100,000 items.
 [Measured results](.github/docs/verification.md) describe the tested environment and limits.
 
 ### Queue groups, email, and benchmark views

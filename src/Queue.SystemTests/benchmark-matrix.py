@@ -17,7 +17,7 @@ for provider in ('sqlite','postgres','sqlserver','azurestorage'):
         env['BESITOS_CONNECTION'] = f'Data Source={root / ".artifacts/benchmark.db"}' if provider == 'sqlite' else settings[f'{provider}Connection']
         path = root / f'.artifacts/benchmark-{provider}-x{concurrency}.json'
         with path.open('w') as output:
-            subprocess.run(['dotnet',str(root / 'src/Queue.Benchmarks/bin/Debug/net10.0/Queue.Benchmarks.dll'),
+            subprocess.run(['dotnet',str(root / 'src/Queue.Benchmarks/bin/Debug/net11.0/Queue.Benchmarks.dll'),
                 '--provider',provider,'--count','100000','--concurrency',str(concurrency),'--allow-100k'],
                 env=env,cwd=root,stdout=output,check=True)
         result=json.loads(path.read_text())

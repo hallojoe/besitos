@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-Use .NET SDK 10.0.403 and Aspire CLI 13.6.4.
+Use .NET SDK 11.0.100 and Aspire CLI 17.0.0.
 Use Docker or rootless Podman for the server databases and database UIs.
 SQL Server containers require Linux x86-64. Use an external SQL Server on unsupported hosts.
 SQLite needs a local writable directory. Do not use a network filesystem.
@@ -31,6 +31,8 @@ The HTTP profile is for local development. The HTTPS profile uses the local deve
 8. Select **Enqueue a command** to open its modal. Submit it, then select **Start processing**.
 
 Starting AppHost starts only the console.
+The dashboard groups each provider's database, workers, and management UI under `sqlserver`, `postgres`, `sqlite-queue`, or `azurite`.
+Expand a group to see its resources and worker replicas.
 Database containers, database UIs, and workers use Aspire's `WithExplicitStart` API.
 AppHost creates `.data/queue.db` at startup if the file does not exist.
 The worker initializes its schema and starts paused.
@@ -83,6 +85,7 @@ A replayed poison command fails again until its handler behavior changes.
 ## Analyze with SonarQube
 
 SonarQube Community Build runs locally with its own PostgreSQL database.
+The dashboard groups its PostgreSQL server and password parameter under `sonarqube`, with `sonar-db` nested under the server.
 Both containers require manual startup and stop with AppHost.
 Named volumes preserve their data. Queue workers do not depend on SonarQube.
 Port `9000` must be available.

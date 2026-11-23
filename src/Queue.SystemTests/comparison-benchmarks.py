@@ -45,7 +45,7 @@ for provider in ('sqlite', 'postgres', 'sqlserver', 'azurestorage'):
             database = root / '.artifacts' / (queue + '.db')
             env = os.environ | {'BESITOS_CONNECTION': f'Data Source={database}' if provider == 'sqlite' else settings[f'{provider}Connection'],
                                 'BESITOS_AZURITE_VERSION': settings['azuriteVersion']}
-            command = ['dotnet', str(root / 'src/Queue.Benchmarks/bin/Release/net10.0/Queue.Benchmarks.dll'),
+            command = ['dotnet', str(root / 'src/Queue.Benchmarks/bin/Release/net11.0/Queue.Benchmarks.dll'),
                        '--provider', provider, '--count', '1000', '--concurrency', str(concurrency), '--batch-size', '100', '--queue', queue]
             try:
                 completed = subprocess.run(command, cwd=root, env=env, capture_output=True, text=True, timeout=600)

@@ -51,7 +51,7 @@ for provider in ('sqlite','postgres','sqlserver','azurestorage'):
             env=os.environ|{'BESITOS_CONNECTION':f'Data Source={database}' if provider=='sqlite' else settings[provider+'Connection']}
             if provider=='azurestorage':env['BESITOS_AZURITE_VERSION']=settings['azuriteVersion']
             with path.open('w') as handle:
-                subprocess.run(['dotnet',str(root/'src/Queue.Benchmarks/bin/Debug/net10.0/Queue.Benchmarks.dll'),
+                subprocess.run(['dotnet',str(root/'src/Queue.Benchmarks/bin/Debug/net11.0/Queue.Benchmarks.dll'),
                     '--provider',provider,'--count','100000','--allow-100k','--concurrency','4','--batch-size',str(size),
                     '--mode',mode,'--queue',queue],cwd=root,env=env,stdout=handle,check=True)
             result=json.loads(path.read_text())

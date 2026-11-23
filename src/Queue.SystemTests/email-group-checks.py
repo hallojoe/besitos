@@ -47,7 +47,7 @@ def wait(predicate, seconds=45):
 
 def launch(project, env, listen):
     log = open(ROOT / f'.artifacts/email-{project}-{len(logs)}.log', 'w'); logs.append(log)
-    process = subprocess.Popen(['dotnet', str(ROOT / f'src/QueueDemo.{project}/bin/Debug/net10.0/QueueDemo.{project}.dll'), '--urls', listen],
+    process = subprocess.Popen(['dotnet', str(ROOT / f'src/QueueDemo.{project}/bin/Debug/net11.0/QueueDemo.{project}.dll'), '--urls', listen],
                                cwd=ROOT / f'src/QueueDemo.{project}', env=os.environ | env, stdout=log, stderr=subprocess.STDOUT)
     processes.append(process)
     wait(lambda: request(listen + '/health'))

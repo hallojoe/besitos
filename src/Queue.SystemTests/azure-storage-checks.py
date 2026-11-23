@@ -28,7 +28,7 @@ env = os.environ | {'BESITOS_CONNECTION': settings['azurestorageConnection'], 'B
 def benchmark(mode, size, concurrency, queue):
     path = output / f'{mode}-b{size}-x{concurrency}.json'
     with path.open('w') as log:
-        subprocess.run(['dotnet', str(root / 'src/Queue.Benchmarks/bin/Debug/net10.0/Queue.Benchmarks.dll'),
+        subprocess.run(['dotnet', str(root / 'src/Queue.Benchmarks/bin/Debug/net11.0/Queue.Benchmarks.dll'),
             '--provider', 'azurestorage', '--count', '1000', '--concurrency', str(concurrency),
             '--batch-size', str(size), '--mode', mode, '--queue', queue],
             env=env, cwd=root, stdout=log, check=True, timeout=180)
@@ -68,7 +68,7 @@ processes, logs = [], []
 
 def launch(name, environment, listen_port):
     log = (output / f'{name}.log').open('w'); logs.append(log)
-    process = subprocess.Popen(['dotnet', str(root / f'src/QueueDemo.{name}/bin/Debug/net10.0/QueueDemo.{name}.dll'),
+    process = subprocess.Popen(['dotnet', str(root / f'src/QueueDemo.{name}/bin/Debug/net11.0/QueueDemo.{name}.dll'),
         '--urls', f'http://127.0.0.1:{listen_port}'], cwd=root / f'src/QueueDemo.{name}',
         env=environment, stdout=log, stderr=subprocess.STDOUT)
     processes.append(process)

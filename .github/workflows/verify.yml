@@ -16,7 +16,7 @@ jobs:
           global-json-file: global.json
       - run: dotnet build Besitos.slnx
       - name: Tests without external services
-        run: dotnet test src/Queue.Tests --no-build --logger "trx;LogFileName=unit-tests.trx" --results-directory .artifacts
+        run: dotnet test src/Besitos.Tests --no-build --logger "trx;LogFileName=unit-tests.trx" --results-directory .artifacts
       - uses: actions/upload-artifact@v4
         if: always()
         with:

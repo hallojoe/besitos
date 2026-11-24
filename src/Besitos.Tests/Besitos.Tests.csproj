@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsTestProject>true</IsTestProject><IsPackable>false</IsPackable></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../examples/IdempotentHandlers.cs" Link="Examples/IdempotentHandlers.cs" />
+    <ProjectReference Include="../Besitos.ExtensionFixture/Besitos.ExtensionFixture.csproj" />
+    <ProjectReference Include="../Besitos.Sqlite/Besitos.Sqlite.csproj" />
+    <ProjectReference Include="../Besitos.AzureStorage/Besitos.AzureStorage.csproj" />
+    <ProjectReference Include="../Besitos.Postgres/Besitos.Postgres.csproj" />
+    <ProjectReference Include="../Besitos.SqlServer/Besitos.SqlServer.csproj" />
+    <ProjectReference Include="../Besitos.Worker/Besitos.Worker.csproj" />
+    <ProjectReference Include="../Besitos.Demo.Web/Besitos.Demo.Web.csproj" />
+    <ProjectReference Include="../Besitos.Demo.Worker/Besitos.Demo.Worker.csproj" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+</Project>

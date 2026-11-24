@@ -1,0 +1,46 @@
+@worker = http://localhost:5211
+@console = http://localhost:5210
+@key = REPLACE_WITH_DEMO_KEY
+
+### The default worker group's catalogue
+GET {{worker}}/handlers
+X-Besitos-Key: {{key}}
+
+### One registered command
+GET {{worker}}/handlers/demo.echo.v1
+X-Besitos-Key: {{key}}
+
+### Unknown command: 404 Problem Details
+GET {{worker}}/handlers/not.registered.v1
+X-Besitos-Key: {{key}}
+
+### Console proxy, default group
+GET {{console}}/api/sqlite/handlers
+
+### Console proxy, one command
+GET {{console}}/api/sqlite/handlers/demo.echo.v1
+
+### Console proxy, selected group
+GET {{console}}/api/sqlite/groups/many-email/handlers
+
+### Console proxy, selected group's command
+GET {{console}}/api/sqlite/groups/many-email/handlers/email.batch.v1
+
+### Submit test items to the selected handler's queue group
+POST {{console}}/api/sqlite/groups/default/enqueue/batch
+Content-Type: application/json
+X-Besitos-Request: console
+
+[
+  {
+    "command": "demo.echo.v1",
+    "queueName": "default",
+    "payload": "Test from the handler card",
+    "payloadMediaType": "text/plain",
+    "maxAttempts": 5
+  }
+]
+
+### Development host OpenAPI
+GET {{worker}}/openapi/handlers.json
+X-Besitos-Key: {{key}}

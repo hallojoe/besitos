@@ -1,7 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <ItemGroup>
-    <ProjectReference Include="../Queue.Core/Queue.Core.csproj" />
-    <ProjectReference Include="../Queue.Delivery/Queue.Delivery.csproj" />
-  </ItemGroup>
-</Project>

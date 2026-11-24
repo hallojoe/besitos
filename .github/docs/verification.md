@@ -24,7 +24,7 @@ See [improvement priorities](improvement-priorities.md) for completed changes an
 
 ```bash
 dotnet build Besitos.slnx
-dotnet test src/Queue.Tests
+dotnet test src/Besitos.Tests
 ```
 
 Without server connection variables, the test command runs SQLite, policy, worker, and SSE tests.
@@ -34,10 +34,10 @@ Use disposable databases. Tests retain some server rows in unique test queues.
 The complete local provider and process sequence is:
 
 ```bash
-BESITOS_KEEP_TEST_CONTAINERS=1 python3 src/Queue.SystemTests/provider-matrix.py
-python3 src/Queue.SystemTests/process-checks.py
-BESITOS_BROWSER=1 python3 src/Queue.SystemTests/console-checks.py
-python3 src/Queue.SystemTests/cleanup-engines.py
+BESITOS_KEEP_TEST_CONTAINERS=1 python3 src/Besitos.SystemTests/provider-matrix.py
+python3 src/Besitos.SystemTests/process-checks.py
+BESITOS_BROWSER=1 python3 src/Besitos.SystemTests/console-checks.py
+python3 src/Besitos.SystemTests/cleanup-engines.py
 ```
 
 The matrix prefers Podman. Set `CONTAINER_ENGINE=docker` to use Docker.
@@ -105,10 +105,10 @@ Each server container and worker also started successfully through explicit comm
 Large runs are opt-in:
 
 ```bash
-BESITOS_KEEP_TEST_CONTAINERS=1 python3 src/Queue.SystemTests/provider-matrix.py
-python3 src/Queue.SystemTests/benchmark-matrix.py --allow-100k
-python3 src/Queue.SystemTests/report-results.py
-python3 src/Queue.SystemTests/cleanup-engines.py
+BESITOS_KEEP_TEST_CONTAINERS=1 python3 src/Besitos.SystemTests/provider-matrix.py
+python3 src/Besitos.SystemTests/benchmark-matrix.py --allow-100k
+python3 src/Besitos.SystemTests/report-results.py
+python3 src/Besitos.SystemTests/cleanup-engines.py
 ```
 
 The benchmark matrix runs each provider at X=1, 4, and 16.
@@ -120,7 +120,7 @@ It does not keep an array of all queue items.
 For one smaller run:
 
 ```bash
-dotnet run --project src/Queue.Benchmarks -- --provider sqlite --count 1000 --concurrency 4
+dotnet run --project src/Besitos.Benchmarks -- --provider sqlite --count 1000 --concurrency 4
 ```
 
 Set `BESITOS_CONNECTION` for server runs.

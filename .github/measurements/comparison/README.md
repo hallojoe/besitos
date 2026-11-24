@@ -22,5 +22,5 @@ The console compares matched settings and shows each raw result.
 See [environment.json](environment.json) for hardware, engine settings, source hash, and SDK information.
 Each result includes enqueue time, processing time, engine version, and validation fields.
 
-Reproduce with `python3 src/Queue.SystemTests/comparison-benchmarks.py` after starting disposable test engines.
+Reproduce with `python3 src/Besitos.SystemTests/comparison-benchmarks.py` after starting disposable test engines.
 See [benchmark instructions](../../docs/benchmark-console.md).

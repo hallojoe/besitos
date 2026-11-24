@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="../Besitos/Besitos.csproj" />
+    <ProjectReference Include="../Besitos.Delivery/Besitos.Delivery.csproj" />
+  </ItemGroup>
+</Project>

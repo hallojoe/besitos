@@ -50,6 +50,7 @@ public static class QueueRuntimeRegistration
             throw new InvalidOperationException("Register the queue runtime once.");
         var builder = new QueueRuntimeBuilder();
         configure(builder);
+        services.AddHandlerCatalogue();
         services.AddSingleton(builder);
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<IQueueTelemetry, NullTelemetry>();

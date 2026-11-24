@@ -3,6 +3,7 @@ const $ = id => document.getElementById(id);
 let provider = 'sqlite', group = 'default', snapshots = [], events = [], displayPaused = false, cursor = null, inspected = null;
 const completed = {};
 const contributions = new Map();
+let handlers = [], catalogueKey = '', catalogueState = 'idle', catalogueRequest = 0;
 const currentGroup = () => snapshots.find(x => x.provider === provider && x.queueName === group);
 const contribution = () => contributions.get(currentGroup()?.workload);
 function refreshChoices() {
@@ -27,7 +28,7 @@ function notify(message, error = false) { if ($('enqueue-dialog').open) $('enque
 async function api(path, body, method = 'POST') {
   const response = await fetch(`/api/${provider}/groups/${group}${path}`, {method, headers: {'Content-Type':'application/json','X-Besitos-Request':'console'}, body: body === undefined ? undefined : JSON.stringify(body)});
   const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(result.error || `Request failed (${response.status}).`);
+  if (!response.ok) throw new Error(result.error || result.title || `Request failed (${response.status}).`);
   return result;
 }
 function action(fn) { return async event => { event?.preventDefault(); try { await fn(event); } catch (error) { notify(error.message, true); } }; }
@@ -77,6 +78,82 @@ function render() {
     $('load-start').disabled = !ready || load.running;
     $('load-cancel').disabled = !ready || !load.running;
   }
+  syncHandlerCatalogue(current, ready);
+}
+
+const duplicateLabels = { Unspecified:'Not declared', None:'No duplicate protection', NaturallyIdempotent:'Naturally idempotent', Transactional:'Transactional protection', ProviderSupported:'Provider-supported protection', DurableReservation:'Durable reservation; uncertain sends require review' };
+function declaration(handler) {
+  const node = text('div', '', 'handler-description');
+  node.append(text('p', handler.description), text('p', `Payload: ${handler.payloadMediaType}`, 'muted'),
+    text('p', `Declared duplicate handling: ${duplicateLabels[handler.duplicateHandling] || 'Not declared'}`));
+  if (handler.duplicateHandlingNotes) node.append(text('p', handler.duplicateHandlingNotes, 'muted'));
+  if (handler.payloadSchema != null) {
+    const schema = text('details', '');
+    schema.append(text('summary', 'Declared payload schema'), text('pre', JSON.stringify(handler.payloadSchema, null, 2)));
+    node.append(schema);
+  }
+  return node;
+}
+function renderHandlerDetails() {
+  const command = contribution()?.handlerCommand || $('command').value;
+  const handler = handlers.find(value => value.command === command);
+  $('handler-details').replaceChildren(handler ? declaration(handler) : text('p',
+    catalogueState === 'loaded' ? 'This command is not listed by the selected worker group. An unknown command can fail permanently.'
+      : 'Handler information is unavailable. Its behavior has not been confirmed by the selected worker.', 'muted'));
+}
+function useHandlerExample(handler) {
+  $('command').value = handler.command;
+  $('handler-picker').value = handler.command;
+  $('media').value = handler.payloadMediaType;
+  $('payload').value = handler.examplePayload ?? '';
+  $('metadata').value = handler.exampleMetadata ?? '';
+  $('attempts').value = '5'; $('delay').value = '0';
+  renderHandlerDetails();
+}
+function renderHandlers() {
+  $('handlers-list').replaceChildren(...handlers.map(handler => {
+    const node = text('details', '', 'handler-card');
+    node.append(text('summary', `${handler.displayName} · ${handler.command}`), declaration(handler));
+    node.append(createHandlerTestForm(handler, {provider, group}, catalogueRequest));
+    return node;
+  }));
+  const placeholder = text('option', 'Choose a handler or enter a command'); placeholder.value = '';
+  $('handler-picker').replaceChildren(placeholder, ...handlers.map(handler => {
+    const option = text('option', handler.displayName); option.value = handler.command; return option;
+  }));
+  $('handler-picker').value = handlers.some(handler => handler.command === $('command').value) ? $('command').value : '';
+  $('handler-presets').replaceChildren(...handlers.filter(handler => handler.examplePayload != null).map(handler => {
+    const button = text('button', handler.displayName); button.type = 'button';
+    button.addEventListener('click', () => { useHandlerExample(handler); notify('Example loaded. Select Enqueue command to save it.'); });
+    return button;
+  }));
+  renderHandlerDetails();
+}
+function syncHandlerCatalogue(current, ready) {
+  const key = `${provider}/${group}/${(current?.workers || []).map(worker => worker.processId).sort().join(',')}/${ready}`;
+  if (key !== catalogueKey) {
+    catalogueKey = key; catalogueRequest++; catalogueState = 'idle'; handlers = []; renderHandlers();
+  }
+  if (!ready) { $('handlers-status').textContent = 'Start the worker to load its handler catalogue.'; return; }
+  if (catalogueState === 'idle') void loadHandlers();
+}
+async function loadHandlers() {
+  if (currentGroup()?.state !== 'ready') return;
+  const request = ++catalogueRequest, selected = `${provider}/${group}`;
+  catalogueState = 'loading'; handlers = []; renderHandlers();
+  for (const extension of contributions.values()) extension.render(currentGroup(), true);
+  $('handlers-status').textContent = 'Loading registered handlers…';
+  try {
+    const result = await api('/handlers', undefined, 'GET');
+    if (request !== catalogueRequest || selected !== `${provider}/${group}`) return;
+    if (result.queueName !== group || !Array.isArray(result.handlers)) throw new Error('The worker returned an unexpected handler catalogue.');
+    handlers = result.handlers; catalogueState = 'loaded';
+    $('handlers-status').textContent = `${handlers.length} registered handler${handlers.length === 1 ? '' : 's'} reported by this group endpoint.`;
+  } catch (error) {
+    if (request !== catalogueRequest || selected !== `${provider}/${group}`) return;
+    catalogueState = 'error'; $('handlers-status').textContent = `Handler catalogue unavailable: ${error.message}`;
+  }
+  renderHandlers(); render();
 }
 function renderEvents() {
   if (displayPaused) return;
@@ -99,8 +176,9 @@ $('enqueue-form').addEventListener('submit', action(async () => {
   const result = await api('/enqueue',{command:$('command').value,payload:$('payload').value,payloadMediaType:$('media').value,metadata:$('metadata').value || null,queueName,maxAttempts:Number($('attempts').value),initialDelay:`${days ? days + '.' : ''}${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`,id:crypto.randomUUID()});
   $('enqueue-dialog').close(); notify(`Enqueued ${result.id}`);
 }));
-const presets = {success:['demo.echo.v1',''],transient:['demo.transient.v1','{"failFirst":2}'],poison:['demo.poison.v1',''],long:['demo.delay.v1','{"milliseconds":45000}']};
-document.querySelectorAll('[data-preset]').forEach(button => button.addEventListener('click', () => { const [command,metadata] = presets[button.dataset.preset]; $('command').value=command; $('metadata').value=metadata; $('attempts').value='5'; $('delay').value='0'; notify('Preset loaded. Select Enqueue command to save it.'); }));
+$('handlers-refresh').addEventListener('click', () => { void loadHandlers(); });
+$('handler-picker').addEventListener('change', () => { const handler = handlers.find(value => value.command === $('handler-picker').value); if (handler) useHandlerExample(handler); });
+$('command').addEventListener('input', renderHandlerDetails);
 $('start').addEventListener('click', action(async () => { await api('/control/start'); notify('Processing requested for every replica in this group.'); }));
 $('pause').addEventListener('click', action(async () => { await api('/control/pause'); notify('New claims paused. Active handlers can finish.'); }));
 $('load-start').addEventListener('click', action(async () => { await api('/load',{count:Number($('load-count').value)}); notify('Workload generation started.'); }));
@@ -134,6 +212,9 @@ $('open-enqueue').addEventListener('click', () => {
   $('enqueue-title').textContent = 'Enqueue a command';
   $('generic-enqueue').hidden = false;
   for (const extension of contributions.values()) extension.open(currentGroup());
+  if (!$('command').value && handlers.length && !contribution()?.handlerCommand) useHandlerExample(handlers[0]);
+  renderHandlerDetails();
+  if (catalogueState === 'error') void loadHandlers();
   $('enqueue-dialog').showModal();
 });
 $('close-enqueue').addEventListener('click', () => $('enqueue-dialog').close());

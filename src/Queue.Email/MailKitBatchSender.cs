@@ -85,6 +85,6 @@ public static class EmailRegistration
         services.AddSingleton<EmailMetrics>();
         services.AddSingleton<IQueueDiagnostics, EmailDiagnostics>();
         services.AddScoped<IEmailBatchSender, MailKitBatchSender>();
-        return services.AddQueueHandler<EmailBatchHandler>(EmailBatch.Command);
+        return services.AddQueueHandler<EmailBatchHandler>(EmailHandlerDescription.Descriptor);
     }
 }

@@ -5,6 +5,8 @@ using Besitos.Demo;
 using Besitos.Demo.Web;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddOpenApi("handlers", options =>
+    options.ShouldInclude = description => description.RelativePath?.Split('/').Contains("handlers") == true);
 builder.AddDemoOpenTelemetry();
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 512 * 1024);
 var key = DemoSecurity.RequireKey(builder.Configuration);
@@ -18,6 +20,7 @@ if (builder.Configuration.GetValue("Demo:Benchmarks", true)) builder.Services.Ad
 builder.Services.AddQueueConsoleAdministration();
 var app = builder.Build();
 app.UseLocalConsoleSecurity(key);
+if (app.Environment.IsDevelopment()) app.MapOpenApi();
 app.MapQueueConsole();
 app.MapGet("/health", () => Results.Ok(new { status = "ready" }));
 app.MapQueueConsoleAdministration();

@@ -6,11 +6,10 @@ using Besitos.Storage;
 namespace Besitos.Examples;
 
 // The host supplies an unopened business connection. Register the matching operation executor.
-public sealed class IncrementCounterHandler(Func<DbConnection> createConnection, RelationalOperationExecutor operations) : ICommandHandler
+public sealed class IncrementCounterHandler(Func<DbConnection> createConnection, RelationalOperationExecutor operations) : JsonCommandHandler<IncrementCounter>
 {
-    public async Task HandleAsync(QueueItem item, CancellationToken cancellationToken)
+    protected override async Task HandleAsync(QueueItem item, IncrementCounter request, CancellationToken cancellationToken)
     {
-        var request = HandlerPayload.Parse<IncrementCounter>(item.Payload);
         if (request.OperationId == Guid.Empty || string.IsNullOrWhiteSpace(request.CounterId) || request.CounterId.Length > 128)
             throw new PermanentCommandException("Invalid counter operation.");
         var key = OperationKey.ForBusiness("counter.increment.v1", request.OperationId.ToString("N"));

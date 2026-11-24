@@ -12,6 +12,7 @@ public sealed class QueueRuntime : IHostedService, IAsyncDisposable
     private readonly QueueStoreRegistration[] _stores;
     private readonly QueueGroupRegistration[] _groups;
     private readonly HandlerRegistration[] _handlers;
+    private readonly IReadOnlyDictionary<string, IHandlerCatalogue> _catalogues;
     private readonly Dictionary<string, QueueStoreInstance> _instances = new(StringComparer.Ordinal);
     private readonly Dictionary<string, QueueWorker> _workers = new(StringComparer.Ordinal);
     private readonly object _gate = new();
@@ -29,6 +30,9 @@ public sealed class QueueRuntime : IHostedService, IAsyncDisposable
         _groups = builder.Groups.ToArray();
         _handlers = handlers.ToArray();
         ValidateConfiguration();
+        _ = new HandlerCatalogue(_handlers);
+        _catalogues = _groups.ToDictionary(group => group.Name,
+            group => (IHandlerCatalogue)new HandlerCatalogue(_handlers.Where(handler => group.Commands.Contains(handler.Command))), StringComparer.Ordinal);
     }
 
     public QueueTopology Topology
@@ -43,6 +47,7 @@ public sealed class QueueRuntime : IHostedService, IAsyncDisposable
     }
     public IReadOnlyDictionary<string, QueueWorker> Workers { get { lock (_gate) return new Dictionary<string, QueueWorker>(_workers); } }
     public QueueStoreInstance GetStore(string name) { lock (_gate) return _instances[name]; }
+    public IHandlerCatalogue GetHandlerCatalogue(string group) => _catalogues[group];
     public Task CleanupCompletion => _cleanup;
     public bool CleanupIncomplete { get { lock (_gate) return !_cleanup.IsCompleted || _workers.Values.Any(worker => worker.CleanupIncomplete); } }
 

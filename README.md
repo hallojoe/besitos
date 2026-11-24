@@ -27,6 +27,8 @@ await queue.EnqueueAsync(new Envelope(
 Commands keep their original text, media type, and metadata.
 Delivery is **at least once**. Handlers must tolerate duplicate execution.
 Optional [idempotency helpers](.github/docs/idempotent-handlers.md) support safe database handlers without changing the worker execution path.
+The optional [handler catalogue](.github/docs/handler-catalogue.md) describes registered commands through code, HTTP, and the console.
+The [protected email handler](.github/docs/protected-email.md) records recipient attempts and blocks uncertain SMTP resends for review.
 
 [Configure providers and groups](.github/docs/provider-extensions.md) · [Azure Storage behavior](.github/docs/azure-storage.md) · [Start the demo](.github/docs/quickstart.md) · [Use the library](.github/docs/library.md) · [Read the test results](.github/docs/verification.md)
 

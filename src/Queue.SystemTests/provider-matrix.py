@@ -17,6 +17,7 @@ pg, sql = f'besitos-test-pg-{tag}', f'besitos-test-sql-{tag}'
 artifacts = ROOT / '.artifacts'
 artifacts.mkdir(exist_ok=True)
 credential_file = artifacts / 'test-engines.json'
+test_filter = ['--filter', os.environ['BESITOS_TEST_FILTER']] if os.environ.get('BESITOS_TEST_FILTER') else []
 if os.environ.get('BESITOS_KEEP_TEST_CONTAINERS') == '1' and credential_file.exists():
     raise SystemExit('Run cleanup-engines.py before keeping another test matrix.')
 
@@ -61,9 +62,9 @@ try:
                 'postgresConnection': env['BESITOS_TEST_POSTGRES'], 'sqlserverConnection': env['BESITOS_TEST_SQLSERVER']}, file)
     run(['dotnet', 'build', 'src/Queue.Benchmarks', '--nologo'], cwd=ROOT)
     run(['python3', 'src/Queue.SystemTests/migration-race.py'], cwd=ROOT, env=env)
-    run(['dotnet', 'test', 'src/Queue.Tests', '--logger', 'trx;LogFileName=providers-read-committed.trx', '--results-directory', str(artifacts)], cwd=ROOT, env=env)
+    run(['dotnet', 'test', 'src/Queue.Tests', *test_filter, '--logger', 'trx;LogFileName=providers-read-committed.trx', '--results-directory', str(artifacts)], cwd=ROOT, env=env)
     run(sqlcmd('ALTER DATABASE besitos SET READ_COMMITTED_SNAPSHOT ON WITH ROLLBACK IMMEDIATE;'), env=env, stdout=subprocess.DEVNULL)
-    run(['dotnet', 'test', 'src/Queue.Tests', '--no-build', '--logger', 'trx;LogFileName=providers-rcsi.trx', '--results-directory', str(artifacts)], cwd=ROOT, env=env)
+    run(['dotnet', 'test', 'src/Queue.Tests', *test_filter, '--no-build', '--logger', 'trx;LogFileName=providers-rcsi.trx', '--results-directory', str(artifacts)], cwd=ROOT, env=env)
 
 finally:
     if os.environ.get('BESITOS_KEEP_TEST_CONTAINERS') != '1' or not credential_file.exists():

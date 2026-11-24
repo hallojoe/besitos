@@ -103,9 +103,9 @@ For standalone hosting, set `Queue__Provider=azurestorage` and configure `Provid
 
 ```bash
 dotnet build Besitos.slnx
-BESITOS_KEEP_TEST_CONTAINERS=1 python3 src/Queue.SystemTests/provider-matrix.py
-python3 src/Queue.SystemTests/azure-storage-checks.py
-python3 src/Queue.SystemTests/cleanup-engines.py
+BESITOS_KEEP_TEST_CONTAINERS=1 python3 src/Besitos.SystemTests/provider-matrix.py
+python3 src/Besitos.SystemTests/azure-storage-checks.py
+python3 src/Besitos.SystemTests/cleanup-engines.py
 ```
 
 The provider matrix creates private PostgreSQL, SQL Server, and Azurite containers.
@@ -117,7 +117,7 @@ Add `--browser` when `playwright-cli` and its browser are installed.
 For a configured external connection, use:
 
 ```bash
-dotnet run --project src/Queue.Benchmarks -- --provider azurestorage --count 1000 --concurrency 4
+dotnet run --project src/Besitos.Benchmarks -- --provider azurestorage --count 1000 --concurrency 4
 ```
 
 Set `BESITOS_CONNECTION` through the environment.

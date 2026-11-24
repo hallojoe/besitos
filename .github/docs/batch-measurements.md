@@ -7,10 +7,10 @@ They do not establish a universal throughput guarantee.
 
 ```bash
 dotnet build Besitos.slnx
-BESITOS_KEEP_TEST_CONTAINERS=1 python3 src/Queue.SystemTests/provider-matrix.py
-python3 src/Queue.SystemTests/batch-benchmark-matrix.py --allow-100k
-python3 src/Queue.SystemTests/report-batch-results.py
-python3 src/Queue.SystemTests/cleanup-engines.py
+BESITOS_KEEP_TEST_CONTAINERS=1 python3 src/Besitos.SystemTests/provider-matrix.py
+python3 src/Besitos.SystemTests/batch-benchmark-matrix.py --allow-100k
+python3 src/Besitos.SystemTests/report-batch-results.py
+python3 src/Besitos.SystemTests/cleanup-engines.py
 ```
 
 The runner uses private test stores. It removes only its generated benchmark queues after insertion-only measurements.

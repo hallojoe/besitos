@@ -1,6 +1,5 @@
 using System.Data.Common;
 using System.Text.Json;
-using Besitos;
 using Besitos.Storage;
 
 namespace Besitos.Examples;
@@ -11,7 +10,10 @@ public sealed class IncrementCounterHandler(Func<DbConnection> createConnection,
     protected override async Task HandleAsync(QueueItem item, IncrementCounter request, CancellationToken cancellationToken)
     {
         if (request.OperationId == Guid.Empty || string.IsNullOrWhiteSpace(request.CounterId) || request.CounterId.Length > 128)
+        {
             throw new PermanentCommandException("Invalid counter operation.");
+        }
+
         var key = OperationKey.ForBusiness("counter.increment.v1", request.OperationId.ToString("N"));
         await using var connection = createConnection();
         await connection.OpenAsync(cancellationToken);
@@ -25,7 +27,9 @@ public sealed class IncrementCounterHandler(Func<DbConnection> createConnection,
             id.Value = request.CounterId;
             command.Parameters.Add(id);
             if (await command.ExecuteNonQueryAsync(token) != 1)
+            {
                 throw new PermanentCommandException("Counter does not exist.");
+            }
         }, cancellationToken);
     }
 }
@@ -46,7 +50,10 @@ public sealed class SendReceiptHandler(IIdempotentReceiptGateway gateway) : ICom
     {
         var request = HandlerPayload.Parse<SendReceipt>(item.Payload);
         if (request.OperationId == Guid.Empty || string.IsNullOrWhiteSpace(request.Recipient) || request.Text is null)
+        {
             throw new PermanentCommandException("Invalid receipt operation.");
+        }
+
         var key = OperationKey.ForBusiness("receipt.send.v1", request.OperationId.ToString("N"));
         return gateway.SendAsync(request, key.Value, cancellationToken);
     }

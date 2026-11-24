@@ -122,8 +122,8 @@ Reproduce verification with:
 
 ```bash
 dotnet build Besitos.slnx --nologo
-dotnet test src/Queue.Tests --no-build --nologo
-python3 src/Queue.SystemTests/provider-matrix.py
+dotnet test src/Besitos.Tests --no-build --nologo
+python3 src/Besitos.SystemTests/provider-matrix.py
 ```
 
 The provider matrix creates and removes private test containers.

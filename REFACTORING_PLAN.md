@@ -269,7 +269,7 @@ Use controlled time where timing affects ownership or retry behavior.
 
 ```bash
 dotnet build Besitos.slnx --nologo
-dotnet test src/Queue.Tests --no-build --nologo
+dotnet test src/Besitos.Tests --no-build --nologo
 git diff --check
 ```
 

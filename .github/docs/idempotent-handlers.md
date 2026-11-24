@@ -114,12 +114,12 @@ Deletion allows the operation to run again. Indefinite replay protection require
 ## Verification and benchmarks
 
 ```bash
-dotnet test src/Queue.Tests --filter 'FullyQualifiedName~Operation'
-BESITOS_KEEP_TEST_CONTAINERS=1 python3 src/Queue.SystemTests/provider-matrix.py
-python3 src/Queue.SystemTests/operation-benchmarks.py --count 10000 --concurrency 1 4 16
-python3 src/Queue.SystemTests/operation-benchmarks.py --providers sqlite --count 100000 --concurrency 1 --repeats 1 --allow-100k
-python3 src/Queue.SystemTests/operation-benchmarks.py --providers postgres sqlserver --count 100000 --concurrency 4 --repeats 1 --allow-100k
-python3 src/Queue.SystemTests/cleanup-engines.py
+dotnet test src/Besitos.Tests --filter 'FullyQualifiedName~Operation'
+BESITOS_KEEP_TEST_CONTAINERS=1 python3 src/Besitos.SystemTests/provider-matrix.py
+python3 src/Besitos.SystemTests/operation-benchmarks.py --count 10000 --concurrency 1 4 16
+python3 src/Besitos.SystemTests/operation-benchmarks.py --providers sqlite --count 100000 --concurrency 1 --repeats 1 --allow-100k
+python3 src/Besitos.SystemTests/operation-benchmarks.py --providers postgres sqlserver --count 100000 --concurrency 4 --repeats 1 --allow-100k
+python3 src/Besitos.SystemTests/cleanup-engines.py
 ```
 
 The provider matrix adds real PostgreSQL and SQL Server tests when their connection settings are present.

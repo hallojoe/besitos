@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <ProjectReference Include="../Besitos.Email/Besitos.Email.csproj" />
+    <ProjectReference Include="../Besitos.Sqlite/Besitos.Sqlite.csproj" />
+    <ProjectReference Include="../Besitos.AzureStorage/Besitos.AzureStorage.csproj" />
+    <ProjectReference Include="../Besitos.Postgres/Besitos.Postgres.csproj" />
+    <ProjectReference Include="../Besitos.SqlServer/Besitos.SqlServer.csproj" />
+    <ProjectReference Include="../Besitos.Demo/Besitos.Demo.csproj" />
+  </ItemGroup>
+</Project>

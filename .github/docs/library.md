@@ -2,6 +2,7 @@
 
 Reference `Queue.Core`, `Queue.Worker`, and the selected provider project.
 Namespaces start with `Besitos`.
+Use the optional [protected email handler](protected-email.md) for durable SMTP recipient reservations and controlled replay.
 Initialize the store explicitly before starting consumers.
 
 ```csharp
@@ -46,6 +47,8 @@ There is no Supabase dependency.
 ## Commands and payloads
 
 Register opaque command names explicitly. Input never resolves CLR type names.
+Add optional [handler descriptors](handler-catalogue.md) for discovery through code, HTTP, and the console.
+Typed JSON adapters and attributed assembly discovery are available as explicit opt-ins.
 Names contain 1–128 lowercase ASCII letters, digits, dots, underscores, or hyphens.
 The first character must be a letter or digit.
 This rule gives consistent casing across database collations.

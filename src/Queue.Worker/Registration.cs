@@ -4,7 +4,10 @@ using Microsoft.Extensions.Hosting;
 
 namespace Besitos.Worker;
 
-public sealed record HandlerRegistration(string Command, Type HandlerType);
+public sealed record HandlerRegistration(string Command, Type HandlerType)
+{
+    public HandlerDescriptor? Descriptor { get; init; }
+}
 
 public static class WorkerRegistration
 {
@@ -13,6 +16,23 @@ public static class WorkerRegistration
         EnvelopeValidation.Name(command);
         services.AddScoped<T>();
         services.AddSingleton(new HandlerRegistration(command, typeof(T)));
+        services.AddHandlerCatalogue();
+        return services;
+    }
+
+    public static IServiceCollection AddQueueHandler<T>(this IServiceCollection services, HandlerDescriptor descriptor) where T : class, ICommandHandler
+    {
+        ArgumentNullException.ThrowIfNull(descriptor);
+        var snapshot = descriptor.Snapshot();
+        services.AddScoped<T>();
+        services.AddSingleton(new HandlerRegistration(snapshot.Command, typeof(T)) { Descriptor = snapshot });
+        services.AddHandlerCatalogue();
+        return services;
+    }
+
+    public static IServiceCollection AddHandlerCatalogue(this IServiceCollection services)
+    {
+        services.TryAddSingleton<IHandlerCatalogue, HandlerCatalogue>();
         return services;
     }
 
@@ -20,6 +40,7 @@ public static class WorkerRegistration
     {
         options ??= new();
         options.Validate();
+        services.AddHandlerCatalogue();
         services.AddSingleton(options);
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<IQueueTelemetry, NullTelemetry>();

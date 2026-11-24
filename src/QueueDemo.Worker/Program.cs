@@ -10,6 +10,8 @@ using Besitos.SqlServer;
 using Besitos.Worker;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddOpenApi("handlers", options =>
+    options.ShouldInclude = description => description.RelativePath?.Split('/').Contains("handlers") == true);
 builder.AddDemoOpenTelemetry();
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 512 * 1024);
 var key = DemoSecurity.RequireKey(builder.Configuration);
@@ -22,14 +24,17 @@ builder.Services.AddHttpClient();
 builder.Services.AddSingleton<LoadGenerator>();
 builder.Services.AddSingleton<TelemetrySender>();
 builder.Services.AddSingleton<IQueueTelemetry>(services => services.GetRequiredService<TelemetrySender>());
+RelationalEmailDeliveryJournal? emailJournal = null;
 if (options.QueueName == "many-email")
-    builder.Services.AddEmailBatches(builder.Configuration.GetSection("Smtp").Get<SmtpOptions>() ?? new());
+{
+    var smtp = builder.Configuration.GetSection("Smtp").Get<SmtpOptions>() ?? new();
+    builder.Services.AddEmailBatches(smtp);
+    emailJournal = builder.Services.AddProtectedDemoEmails(builder.Configuration, provider, connection, smtp);
+}
 else
-    builder.Services.AddQueueHandler<EchoHandler>("demo.echo.v1")
-        .AddQueueHandler<DelayHandler>("demo.delay.v1")
-        .AddQueueHandler<TransientHandler>("demo.transient.v1")
-        .AddQueueHandler<PoisonHandler>("demo.poison.v1");
-var commands = options.QueueName == "many-email" ? new[] { EmailBatch.Command }
+    builder.Services.AddDemoHandlers();
+var commands = options.QueueName == "many-email"
+    ? emailJournal is null ? new[] { EmailBatch.Command } : new[] { EmailBatch.Command, ProtectedEmailBatch.Command }
     : new[] { "demo.echo.v1", "demo.delay.v1", "demo.transient.v1", "demo.poison.v1" };
 builder.Services.AddQueueRuntime(runtime => runtime
     .AddProvider(SqliteQueueStore.Descriptor, (_, settings) => QueueStoreInstance.FromStore(new SqliteQueueStore(settings["connection"])))
@@ -54,7 +59,19 @@ builder.Services.AddQueueAdministration(new()
 });
 var app = builder.Build();
 app.UseLocalConsoleSecurity(key, worker: true);
+if (app.Environment.IsDevelopment()) app.MapOpenApi();
 // This executable is explicitly started. The web console never initializes a store.
+if (emailJournal is not null)
+{
+    var journalProvider = builder.Configuration["EmailJournal:Provider"] ?? provider;
+    if (journalProvider == "sqlite")
+    {
+        var journalConnection = builder.Configuration.GetConnectionString("emailJournal") ?? connection;
+        var file = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder(journalConnection).DataSource;
+        if (!string.IsNullOrEmpty(file) && file != ":memory:") Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(file))!);
+    }
+    await emailJournal.InitializeAsync(app.Lifetime.ApplicationStopping);
+}
 await app.Services.GetRequiredService<QueueRuntime>().StartAsync(app.Lifetime.ApplicationStopping);
 app.MapGet("/health", () => Results.Ok(new { status = "ready", provider }));
 app.MapQueueAdministration();
@@ -71,7 +88,6 @@ void ValidateEnvelope(Envelope envelope)
     if (envelope.QueueName != options.QueueName) throw new ArgumentException("The queue does not match this worker.");
     if (options.QueueName == "many-email")
     {
-        if (envelope.Command != EmailBatch.Command) throw new ArgumentException("This group accepts email batches only.");
-        EmailBatch.Parse(envelope.Payload);
+        DemoEmailRegistration.ValidateBatch(envelope, emailJournal is not null);
     }
 }

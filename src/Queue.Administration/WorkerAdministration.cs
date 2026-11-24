@@ -15,6 +15,12 @@ public sealed class QueueAdministrationOptions
 
 public sealed class WorkerAdministration(IServiceProvider services, QueueAdministrationOptions options)
 {
+    public IHandlerCatalogue Handlers => options.GroupName is { } group
+        ? services.GetRequiredService<QueueRuntime>().GetHandlerCatalogue(group)
+        : services.GetRequiredService<IHandlerCatalogue>();
+    public string HandlerQueueName => options.GroupName is { } group
+        ? services.GetRequiredService<QueueRuntime>().Topology.Groups.Single(value => value.Name == group).QueueName
+        : services.GetService<QueueWorkerOptions>()?.QueueName ?? "default";
     public QueueWorker Worker => options.GroupName is { } group
         ? services.GetRequiredService<QueueRuntime>().Workers[group] : services.GetRequiredService<QueueWorker>();
     private QueueStoreInstance? Instance => options.GroupName is { } group
@@ -51,6 +57,7 @@ public static class WorkerAdministrationRegistration
     public static IServiceCollection AddQueueAdministration(this IServiceCollection services, QueueAdministrationOptions? options = null)
     {
         services.AddSingleton(options ?? new());
+        services.AddHandlerCatalogue();
         services.AddSingleton<WorkerAdministration>();
         return services;
     }
@@ -58,6 +65,7 @@ public static class WorkerAdministrationRegistration
     /// <summary>The host must apply authentication and authorization before mapping administration routes.</summary>
     public static IEndpointRouteBuilder MapQueueAdministration(this IEndpointRouteBuilder app)
     {
+        app.MapQueueHandlers();
         app.MapGet("/status", (WorkerAdministration administration) => administration.Worker.Status);
         app.MapGet("/snapshot", (WorkerAdministration administration, CancellationToken token) => administration.SnapshotAsync(token));
         app.MapGet("/capabilities", (WorkerAdministration administration) => administration.Capabilities);

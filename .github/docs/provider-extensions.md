@@ -125,6 +125,7 @@ app.MapQueueAdministration();
 ```
 
 Worker routes preserve `/status`, `/snapshot`, enqueue, inspection, replay, and controls.
+`/handlers` and `/handlers/{command}` expose the selected group's [handler catalogue](handler-catalogue.md).
 `/capabilities` adds safe provider metadata. `/enqueue/results` exposes richer submission outcomes.
 Delivery-only providers declare unsupported submission and return clear errors for producer routes.
 New producers can supply `QueueStoreInstance.Submission` without implementing the legacy store interface.

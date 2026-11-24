@@ -110,7 +110,7 @@ public sealed class EmailTests
         public Task SendAsync(Guid envelopeId, EmailBatch batch, CancellationToken cancellationToken = default) { Called = true; return Task.CompletedTask; }
     }
 
-    private sealed class SmtpFixture : IAsyncDisposable
+    internal sealed class SmtpFixture : IAsyncDisposable
     {
         private readonly TcpListener _listener = new(IPAddress.Loopback, 0);
         private readonly CancellationTokenSource _stop = new(TimeSpan.FromSeconds(15));
@@ -121,26 +121,41 @@ public sealed class EmailTests
         public TaskCompletionSource Blocked { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public int RejectCode = 550;
         public bool DropQuit;
+        public int DropAcceptanceReply;
+        private int _recipientAttempts;
         public ConcurrentQueue<Stream> Messages { get; } = new();
         public SmtpOptions Options => new() { Host = "127.0.0.1", Port = ((IPEndPoint)_listener.LocalEndpoint).Port, Security = SecureSocketOptions.None };
         public SmtpFixture() { _listener.Start(); _task = Run(); }
         private async Task Run()
         {
+            var clients = new List<Task>();
             try
             {
-                using var socket = await _listener.AcceptTcpClientAsync(_stop.Token);
+                while (!_stop.IsCancellationRequested)
+                {
+                    var socket = await _listener.AcceptTcpClientAsync(_stop.Token);
+                    clients.Add(Serve(socket));
+                }
+            }
+            catch (Exception exception) when (exception is OperationCanceledException or SocketException) { }
+            finally { await Task.WhenAll(clients); }
+        }
+        private async Task Serve(TcpClient client)
+        {
+            try
+            {
+                using var socket = client;
                 Interlocked.Increment(ref Connections);
                 await using var stream = socket.GetStream();
                 using var reader = new StreamReader(stream, Encoding.UTF8, leaveOpen: true);
                 await using var writer = new StreamWriter(stream, new UTF8Encoding(false), leaveOpen: true) { NewLine = "\r\n", AutoFlush = true };
                 await writer.WriteLineAsync("220 localhost ESMTP");
-                var recipients = 0;
                 while (await reader.ReadLineAsync(_stop.Token) is { } line)
                 {
                     if (line.StartsWith("EHLO", StringComparison.Ordinal)) await writer.WriteLineAsync("250 localhost");
                     else if (line.StartsWith("RCPT", StringComparison.Ordinal))
                     {
-                        recipients++;
+                        var recipients = Interlocked.Increment(ref _recipientAttempts);
                         if (recipients == BlockRecipient) { Blocked.TrySetResult(); await Task.Delay(Timeout.Infinite, _stop.Token); }
                         await writer.WriteLineAsync(recipients == RejectRecipient ? $"{RejectCode} rejected" : "250 OK");
                     }
@@ -150,6 +165,7 @@ public sealed class EmailTests
                         var data = new StringBuilder();
                         while (await reader.ReadLineAsync(_stop.Token) is { } body && body != ".") data.Append(body.StartsWith("..", StringComparison.Ordinal) ? body[1..] : body).Append("\r\n");
                         Messages.Enqueue(new MemoryStream(Encoding.UTF8.GetBytes(data.ToString())));
+                        if (Messages.Count == DropAcceptanceReply) return;
                         await writer.WriteLineAsync("250 accepted");
                     }
                     else if (line == "QUIT") { if (!DropQuit) await writer.WriteLineAsync("221 bye"); break; }

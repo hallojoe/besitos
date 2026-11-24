@@ -57,7 +57,9 @@ public sealed class QueueWorker : IHostedService, IDisposable, IAsyncDisposable
         options.Validate();
         _scopes = scopes; _options = options; _telemetry = telemetry; _time = time; _logger = logger;
         _failurePolicy = failurePolicy ?? new DefaultCommandFailurePolicy();
-        _handlers = handlers.ToDictionary(x => x.Command, x => x.HandlerType, StringComparer.Ordinal);
+        var registrations = handlers.ToArray();
+        HandlerCatalogue = new HandlerCatalogue(registrations);
+        _handlers = registrations.ToDictionary(x => x.Command, x => x.HandlerType, StringComparer.Ordinal);
         _paused = !options.AutoProcess;
         _source = createSource(new(options.QueueName, options.LeaseDuration, options.RenewalInterval, options.RecoveryInterval), time,
             value =>
@@ -70,6 +72,7 @@ public sealed class QueueWorker : IHostedService, IDisposable, IAsyncDisposable
     }
 
     public Task Completion => _running;
+    public IHandlerCatalogue HandlerCatalogue { get; }
     public bool CleanupIncomplete => !_running.IsCompleted;
 
     public WorkerStatus Status => new(_processId, _options.QueueName, _options.Concurrency, _paused,

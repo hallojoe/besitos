@@ -55,8 +55,14 @@ public sealed class WorkerTests
     {
         using var fixture = await ProviderContractTests.CreateAsync("sqlite");
         var probe = new Probe();
-        var options = Options(fixture.Queue) with { Concurrency = 2, AutoProcess = false };
-        using var services = Services(fixture.Store, options, probe);
+        // SQLite uses wall-clock leases. Allow scheduling delays on shared CI runners.
+        var options = Options(fixture.Queue) with
+        {
+            Concurrency = 2,
+            AutoProcess = false,
+            LeaseDuration = TimeSpan.FromSeconds(5)
+        };
+        await using var services = Services(fixture.Store, options, probe);
         var worker = services.GetRequiredService<QueueWorker>();
         for (var i = 0; i < 4; i++)
         {
@@ -64,23 +70,40 @@ public sealed class WorkerTests
         }
 
         await worker.StartAsync(default);
-        await Task.Delay(200);
-        Assert.Equal(0, probe.Started);
-        worker.StartProcessing();
-        await UntilAsync(() => probe.Started == 2);
-        worker.Pause();
-        await Task.Delay(600);
-        Assert.Equal(2, probe.Started);
-        Assert.Equal(2, (await fixture.Store.GetStatsAsync(fixture.Queue)).Leased);
-        Assert.Contains(probe.Events, e => e.Type == "renewed");
-        probe.Release.TrySetResult();
-        await UntilAsync(async () => (await fixture.Store.GetStatsAsync(fixture.Queue)).Leased == 0);
-        Assert.Equal(2, (await fixture.Store.GetStatsAsync(fixture.Queue)).Ready);
-        worker.StartProcessing();
-        await UntilAsync(async () => (await fixture.Store.GetStatsAsync(fixture.Queue)).Ready == 0);
-        await worker.StopAsync(default);
-        Assert.Equal(4, probe.Started);
-        Assert.Equal(4, probe.Events.Count(e => e.Type == "completed"));
+        try
+        {
+            await UntilAsync(() => worker.Status.Loops.Count == 2 && worker.Status.Loops.All(loop => loop.State == "paused"));
+            Assert.Equal(0, Volatile.Read(ref probe.Started));
+            worker.StartProcessing();
+            await UntilAsync(() => Volatile.Read(ref probe.Started) == 2);
+            worker.Pause();
+            var activeIds = probe.Events.Where(e => e.Type == "claimed").Select(e => e.ItemId!.Value).ToArray();
+            Assert.Equal(2, activeIds.Length);
+            var activeItems = await Task.WhenAll(activeIds.Select(id => fixture.Store.GetAsync(id)));
+            var originalExpiry = activeItems.Max(item => item!.LeaseUntil!.Value);
+
+            // Both handlers must retain ownership beyond the leases observed before this wait.
+            await UntilAsync(() => activeIds.All(id => probe.Events.Any(e =>
+                e.ItemId == id && e.Type == "renewed" && e.Timestamp > originalExpiry)));
+            Assert.Equal(2, Volatile.Read(ref probe.Started));
+            Assert.Equal(0, Volatile.Read(ref probe.Cancelled));
+            Assert.Equal(2, (await fixture.Store.GetStatsAsync(fixture.Queue)).Leased);
+            Assert.DoesNotContain(probe.Events, e => e.Type is "ownership-lost" or "recovered");
+            probe.Release.TrySetResult();
+            await UntilAsync(() => probe.Events.Count(e => e.Type == "completed") == 2);
+            Assert.Equal(2, (await fixture.Store.GetStatsAsync(fixture.Queue)).Ready);
+            worker.StartProcessing();
+            await UntilAsync(() => probe.Events.Count(e => e.Type == "completed") == 4);
+            Assert.Equal(4, Volatile.Read(ref probe.Started));
+            var stats = await fixture.Store.GetStatsAsync(fixture.Queue);
+            Assert.Equal(0, stats.Ready);
+            Assert.Equal(0, stats.Leased);
+        }
+        finally
+        {
+            probe.Release.TrySetResult();
+            await worker.StopAsync(default);
+        }
     }
 
     [Fact]

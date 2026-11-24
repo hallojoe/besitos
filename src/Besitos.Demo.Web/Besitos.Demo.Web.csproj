@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <ProjectReference Include="../Besitos.Email/Besitos.Email.csproj" />
+    <ProjectReference Include="../Besitos.Console/Besitos.Console.csproj" />
+    <ProjectReference Include="../Besitos.Demo/Besitos.Demo.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="../../.github/measurements/**/*.json" Link="measurements/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

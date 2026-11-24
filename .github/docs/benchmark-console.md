@@ -24,9 +24,9 @@ The existing 100,000-item historical runs and Azure smoke tests used different c
 ## Reproduce the local comparison
 
 ```bash
-BESITOS_KEEP_TEST_CONTAINERS=1 python3 src/Queue.SystemTests/provider-matrix.py
-python3 src/Queue.SystemTests/comparison-benchmarks.py
-python3 src/Queue.SystemTests/cleanup-engines.py
+BESITOS_KEEP_TEST_CONTAINERS=1 python3 src/Besitos.SystemTests/provider-matrix.py
+python3 src/Besitos.SystemTests/comparison-benchmarks.py
+python3 src/Besitos.SystemTests/cleanup-engines.py
 ```
 
 The comparison runner uses private test engines. It builds Release binaries, then runs providers sequentially. Each configuration gets one excluded warm-up and three measured repetitions. The workload has 1,000 envelopes, 128-byte payloads, batch size 100, and concurrency 1, 4, or 16. Handlers add no delay.

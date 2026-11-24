@@ -87,7 +87,7 @@ The console keeps that key on its server. The browser never receives it.
 Development demo hosts expose `/openapi/handlers.json` for the catalogue routes.
 This document is scoped to the catalogue. Legacy command DTOs currently trigger a separate TimeSpan schema-generation incompatibility.
 Other hosts can use the endpoint metadata with their own OpenAPI configuration.
-See [Handlers.http](../../src/Queue.Administration/Handlers.http) for requests.
+See [Handlers.http](../../src/Besitos.Administration/Handlers.http) for requests.
 
 A group endpoint reports the responding worker's configuration. It does not verify consistency across replicas.
 Deploy matching registrations to replicas that consume the same queue.
@@ -172,8 +172,8 @@ Prefer explicit registration for trimmed deployments. Discovery does not provide
 ## Verification
 
 ```bash
-dotnet test src/Queue.Tests
-python3 src/Queue.SystemTests/handler-catalogue-checks.py
+dotnet test src/Besitos.Tests
+python3 src/Besitos.SystemTests/handler-catalogue-checks.py
 ```
 
 The browser checks require `playwright-cli` and an installed browser.

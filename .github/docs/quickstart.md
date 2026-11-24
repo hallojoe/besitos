@@ -13,7 +13,7 @@ No NuGet package publication is required. All projects are in `src`.
 ```bash
 dotnet restore Besitos.slnx
 dotnet build Besitos.slnx
-aspire start --apphost src/QueueDemo.AppHost/QueueDemo.AppHost.csproj --launch-profile http
+aspire start --apphost src/Besitos.Demo.AppHost/Besitos.Demo.AppHost.csproj --launch-profile http
 ```
 
 For Podman, prefix the Aspire command with `ASPIRE_CONTAINER_RUNTIME=podman`.
@@ -55,8 +55,8 @@ The UIs are available only in run mode. Publish mode excludes their containers.
 The following CLI commands provide the same SQLite workflow:
 
 ```bash
-aspire resource sqlite-worker start --apphost src/QueueDemo.AppHost/QueueDemo.AppHost.csproj
-aspire wait sqlite-worker --apphost src/QueueDemo.AppHost/QueueDemo.AppHost.csproj
+aspire resource sqlite-worker start --apphost src/Besitos.Demo.AppHost/Besitos.Demo.AppHost.csproj
+aspire wait sqlite-worker --apphost src/Besitos.Demo.AppHost/Besitos.Demo.AppHost.csproj
 ```
 
 Use **Pause** to stop new claims. Active handlers finish with lease renewal enabled.
@@ -108,7 +108,7 @@ Aspire generates `sonar-db-password` and stores it in the AppHost user secrets.
 To provide your own password, run this before the first database startup:
 
 ```bash
-dotnet user-secrets set --project src/QueueDemo.AppHost "Parameters:sonar-db-password" "YOUR-STRONG-PASSWORD"
+dotnet user-secrets set --project src/Besitos.Demo.AppHost "Parameters:sonar-db-password" "YOUR-STRONG-PASSWORD"
 ```
 
 Retain this secret while retaining `besitos-sonar-postgres-data`.
@@ -119,10 +119,10 @@ Do not delete these volumes to restart the service.
 Start AppHost, then start the resources through its dashboard or these commands:
 
 ```bash
-aspire resource sonar-postgres start --apphost src/QueueDemo.AppHost/QueueDemo.AppHost.csproj --non-interactive
-aspire wait sonar-postgres --apphost src/QueueDemo.AppHost/QueueDemo.AppHost.csproj --non-interactive
-aspire resource sonarqube start --apphost src/QueueDemo.AppHost/QueueDemo.AppHost.csproj --non-interactive
-aspire wait sonarqube --apphost src/QueueDemo.AppHost/QueueDemo.AppHost.csproj --non-interactive
+aspire resource sonar-postgres start --apphost src/Besitos.Demo.AppHost/Besitos.Demo.AppHost.csproj --non-interactive
+aspire wait sonar-postgres --apphost src/Besitos.Demo.AppHost/Besitos.Demo.AppHost.csproj --non-interactive
+aspire resource sonarqube start --apphost src/Besitos.Demo.AppHost/Besitos.Demo.AppHost.csproj --non-interactive
+aspire wait sonarqube --apphost src/Besitos.Demo.AppHost/Besitos.Demo.AppHost.csproj --non-interactive
 ```
 
 Open <http://localhost:9000> and wait for the login page.
@@ -158,13 +158,13 @@ export Demo__WebUrl=http://127.0.0.1:5210
 export Queue__Provider=sqlite
 export ConnectionStrings__queue="Data Source=$PWD/.data/standalone.db"
 
-dotnet run --project src/QueueDemo.Web -- --urls http://127.0.0.1:5210
+dotnet run --project src/Besitos.Demo.Web -- --urls http://127.0.0.1:5210
 ```
 
 In another terminal, set the same variables and secret, then start the worker:
 
 ```bash
-dotnet run --project src/QueueDemo.Worker -- --urls http://127.0.0.1:5211
+dotnet run --project src/Besitos.Demo.Worker -- --urls http://127.0.0.1:5211
 ```
 
 The console defaults to worker ports 5211, 5212, and 5213.
@@ -175,7 +175,7 @@ Use `ConnectionStrings__queue` for external databases too.
 Run a second worker against the same store and named queue:
 
 ```bash
-Worker__AutoProcess=true dotnet run --project src/QueueDemo.Worker -- --urls http://127.0.0.1:5214
+Worker__AutoProcess=true dotnet run --project src/Besitos.Demo.Worker -- --urls http://127.0.0.1:5214
 ```
 
 Each process has its own X loops. Each process must use a different HTTP port.
@@ -199,7 +199,7 @@ It can drain a short handler successfully, so it is not an immediate crash simul
 Stop the demo with:
 
 ```bash
-aspire stop --apphost src/QueueDemo.AppHost/QueueDemo.AppHost.csproj
+aspire stop --apphost src/Besitos.Demo.AppHost/Besitos.Demo.AppHost.csproj
 ```
 
 Normal shutdown preserves database volumes and the SQLite file.

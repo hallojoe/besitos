@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Besitos.Sqlite/Besitos.Sqlite.csproj" />
+    <ProjectReference Include="../Besitos.AzureStorage/Besitos.AzureStorage.csproj" />
+    <ProjectReference Include="../Besitos.Postgres/Besitos.Postgres.csproj" />
+    <ProjectReference Include="../Besitos.SqlServer/Besitos.SqlServer.csproj" />
+  </ItemGroup>
+</Project>

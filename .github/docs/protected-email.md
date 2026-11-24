@@ -152,8 +152,8 @@ SMTP alone cannot provide both guarantees after an uncertain outcome.
 ## Verification
 
 ```bash
-dotnet test src/Queue.Tests --filter 'FullyQualifiedName~ProtectedEmailTests|FullyQualifiedName~EmailJournalTests|FullyQualifiedName~EmailTests'
-python3 src/Queue.SystemTests/provider-matrix.py
+dotnet test src/Besitos.Tests --filter 'FullyQualifiedName~ProtectedEmailTests|FullyQualifiedName~EmailJournalTests|FullyQualifiedName~EmailTests'
+python3 src/Besitos.SystemTests/provider-matrix.py
 ```
 
 The SMTP tests use local disposable servers.

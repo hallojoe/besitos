@@ -1,22 +1,22 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/Queue.ExtensionFixture/Queue.ExtensionFixture.csproj" />
-    <Project Path="src/Queue.Administration/Queue.Administration.csproj" />
-    <Project Path="src/Queue.Console/Queue.Console.csproj" />
-    <Project Path="src/Queue.AzureStorage/Queue.AzureStorage.csproj" />
-    <Project Path="src/Queue.Benchmarks/Queue.Benchmarks.csproj" />
-    <Project Path="src/Queue.Email/Queue.Email.csproj" />
-    <Project Path="src/Queue.Core/Queue.Core.csproj" />
-    <Project Path="src/Queue.Delivery/Queue.Delivery.csproj" />
-    <Project Path="src/Queue.Postgres/Queue.Postgres.csproj" />
-    <Project Path="src/Queue.Sqlite/Queue.Sqlite.csproj" />
-    <Project Path="src/Queue.SqlServer/Queue.SqlServer.csproj" />
-    <Project Path="src/Queue.Storage/Queue.Storage.csproj" />
-    <Project Path="src/Queue.Tests/Queue.Tests.csproj" />
-    <Project Path="src/Queue.Worker/Queue.Worker.csproj" />
-    <Project Path="src/QueueDemo.AppHost/QueueDemo.AppHost.csproj" />
-    <Project Path="src/QueueDemo.Shared/QueueDemo.Shared.csproj" />
-    <Project Path="src/QueueDemo.Web/QueueDemo.Web.csproj" />
-    <Project Path="src/QueueDemo.Worker/QueueDemo.Worker.csproj" />
+    <Project Path="src/Besitos.ExtensionFixture/Besitos.ExtensionFixture.csproj" />
+    <Project Path="src/Besitos.Administration/Besitos.Administration.csproj" />
+    <Project Path="src/Besitos.Console/Besitos.Console.csproj" />
+    <Project Path="src/Besitos.AzureStorage/Besitos.AzureStorage.csproj" />
+    <Project Path="src/Besitos.Benchmarks/Besitos.Benchmarks.csproj" />
+    <Project Path="src/Besitos.Email/Besitos.Email.csproj" />
+    <Project Path="src/Besitos/Besitos.csproj" />
+    <Project Path="src/Besitos.Delivery/Besitos.Delivery.csproj" />
+    <Project Path="src/Besitos.Postgres/Besitos.Postgres.csproj" />
+    <Project Path="src/Besitos.Sqlite/Besitos.Sqlite.csproj" />
+    <Project Path="src/Besitos.SqlServer/Besitos.SqlServer.csproj" />
+    <Project Path="src/Besitos.Storage/Besitos.Storage.csproj" />
+    <Project Path="src/Besitos.Tests/Besitos.Tests.csproj" />
+    <Project Path="src/Besitos.Worker/Besitos.Worker.csproj" />
+    <Project Path="src/Besitos.Demo.AppHost/Besitos.Demo.AppHost.csproj" />
+    <Project Path="src/Besitos.Demo/Besitos.Demo.csproj" />
+    <Project Path="src/Besitos.Demo.Web/Besitos.Demo.Web.csproj" />
+    <Project Path="src/Besitos.Demo.Worker/Besitos.Demo.Worker.csproj" />
   </Folder>
 </Solution>

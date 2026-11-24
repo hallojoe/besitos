@@ -26,24 +26,24 @@ jobs:
         env:
           CONTAINER_ENGINE: docker
           BESITOS_KEEP_TEST_CONTAINERS: '1'
-        run: python3 src/Queue.SystemTests/provider-matrix.py
+        run: python3 src/Besitos.SystemTests/provider-matrix.py
       - name: Azure Storage console and 1,000-item benchmark matrix
-        run: python3 src/Queue.SystemTests/azure-storage-checks.py
+        run: python3 src/Besitos.SystemTests/azure-storage-checks.py
       - name: Queue groups and Mailpit email workflows
-        run: python3 src/Queue.SystemTests/email-group-checks.py
+        run: python3 src/Besitos.SystemTests/email-group-checks.py
       - name: Independent processes, restart, crashes, and telemetry outage
-        run: python3 src/Queue.SystemTests/process-checks.py
+        run: python3 src/Besitos.SystemTests/process-checks.py
       - name: HTTP protection, SSE reconnection, and shutdown
-        run: python3 src/Queue.SystemTests/console-checks.py
+        run: python3 src/Besitos.SystemTests/console-checks.py
       - name: Opt-in large workload
         if: inputs.large_workload == true
-        run: python3 src/Queue.SystemTests/benchmark-matrix.py --allow-100k
+        run: python3 src/Besitos.SystemTests/benchmark-matrix.py --allow-100k
       - name: Opt-in batch workload
         if: inputs.batch_workload == true
-        run: python3 src/Queue.SystemTests/batch-benchmark-matrix.py --allow-100k
+        run: python3 src/Besitos.SystemTests/batch-benchmark-matrix.py --allow-100k
       - name: Remove private test containers
         if: always()
-        run: python3 src/Queue.SystemTests/cleanup-engines.py
+        run: python3 src/Besitos.SystemTests/cleanup-engines.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
